@@ -16,3 +16,9 @@ npm-debug.log*
 # Archivos del sistema operativo
 .DS_Store
 Thumbs.db
+
+*.md
+!README.md
+*.canvas
+*.py
+.obsidian

@@ -17,6 +17,11 @@ export interface IBook {
     tags?: string[];
     price?: number;
     description?: string;
+
+    // Indica si el libro esta borrado, los libros borrados no se eliminan fisicamente de la base de datos
+    deleted: boolean;
+
+    deletedAt?: Date;
 }
 
 export interface IBookModel extends IBook, Document {}
@@ -33,7 +38,7 @@ const BookSchema: Schema = new Schema(
                 message: 'Un libro necesita al menos un autor'
             }
         },
-        isbn: { type: String, required: true, unique: true, trim: true },
+        isbn: { type: String, required: true, trim: true },
         edition: { type: Number, default: 1, min: 1 },
         publisher: { type: String, trim: true },
         publishedYear: { type: Number, min: 1450, max: 2100 },
@@ -41,12 +46,19 @@ const BookSchema: Schema = new Schema(
         language: { type: String, enum: BOOK_LANGUAGES, default: 'es' },
         tags: { type: [String], enum: BOOK_TAGS, default: [] },
         price: { type: Number, min: 0 },
-        description: { type: String, trim: true }
+        description: { type: String, trim: true },
+
+        deleted: { type: Boolean, default: false },
+
+        deletedAt: { type: Date }
     },
     {
         timestamps: true,
         versionKey: false
     }
 );
+
+// Indice unico parcial del ISBN
+BookSchema.index({ isbn: 1 }, { unique: true, partialFilterExpression: { deleted: false } });
 
 export default mongoose.model<IBookModel>('Book', BookSchema);

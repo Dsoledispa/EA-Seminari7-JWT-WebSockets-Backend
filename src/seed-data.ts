@@ -15,7 +15,8 @@ export const authorsSeed: IAuthor[] = [
         biography: 'Autor de El Quijote, la novela más conocida de la literatura española.',
         website: 'https://example.com/cervantes',
         photoUrl: 'https://example.com/fotos/cervantes.jpg',
-        role: 'author'
+        role: 'author',
+        deleted: false
     },
     {
         name: 'Jorge Luis Borges',
@@ -26,7 +27,8 @@ export const authorsSeed: IAuthor[] = [
         biography: 'Escritor de cuentos y ensayos sobre laberintos, espejos y bibliotecas.',
         website: 'https://example.com/borges',
         photoUrl: 'https://example.com/fotos/borges.jpg',
-        role: 'author'
+        role: 'author',
+        deleted: false
     },
     {
         name: 'Mercè Rodoreda',
@@ -37,7 +39,8 @@ export const authorsSeed: IAuthor[] = [
         biography: 'Una de las voces más importantes de la narrativa en catalán del siglo XX.',
         website: 'https://example.com/rodoreda',
         photoUrl: 'https://example.com/fotos/rodoreda.jpg',
-        role: 'author'
+        role: 'author',
+        deleted: false
     },
     {
         name: 'Ursula K. Le Guin',
@@ -48,7 +51,8 @@ export const authorsSeed: IAuthor[] = [
         biography: 'Escritora de ciencia ficción y fantasía conocida por Terramar.',
         website: 'https://example.com/leguin',
         photoUrl: 'https://example.com/fotos/leguin.jpg',
-        role: 'author'
+        role: 'author',
+        deleted: false
     },
     {
         name: 'Isaac Asimov',
@@ -59,13 +63,15 @@ export const authorsSeed: IAuthor[] = [
         biography: 'Autor de la saga de la Fundación y de las tres leyes de la robótica.',
         website: 'https://example.com/asimov',
         photoUrl: 'https://example.com/fotos/asimov.jpg',
-        role: 'admin'
+        role: 'admin',
+        deleted: false
     }
 ];
 
 // Cada libro dice de qué autores es con sus emails. El script del seed los cambia
 // por los ids que MongoDB les ha dado.
-export type BookSeed = Omit<IBook, 'authors'> & { authorEmails: string[] };
+// El campo 'deleted' tampoco se indica aquí: el esquema del libro lo pone en false por defecto.
+export type BookSeed = Omit<IBook, 'authors' | 'deleted'> & { authorEmails: string[] };
 
 export const booksSeed: BookSeed[] = [
     {

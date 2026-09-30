@@ -19,6 +19,9 @@ const seed = async () => {
     Logging.info(`Conectado a ${config.mongo.url}`);
 
     if (reset) {
+        // Ojo: deleteMany({}) es un borrado fisico real y a proposito.
+        // El reset del seed es el unico punto que hace borrado duro: asi tambien
+        // se limpian los documentos que se habian borrado logicamente (soft delete).
         const authors = await Author.deleteMany({});
         const books = await Book.deleteMany({});
         Logging.warning(`Borrados ${authors.deletedCount} autores y ${books.deletedCount} libros`);
