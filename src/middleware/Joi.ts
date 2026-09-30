@@ -134,7 +134,10 @@ export const Schemas = {
             tags: Joi.array().items(Joi.string().valid(...BOOK_TAGS)),
 
             // El precio no puede ser negativo
-            price: Joi.number().min(0)
+            price: Joi.number().min(0),
+
+            //El campo de descripcion es opcional y puede ser un string vacio
+            description: Joi.string().allow('').optional().example('Sinopsis o descripción del libro')
         }),
 
         // Esquema que se utiliza para actualizar un libro
@@ -163,7 +166,10 @@ export const Schemas = {
             tags: Joi.array().items(Joi.string().valid(...BOOK_TAGS)),
 
             // El precio no puede ser negativo
-            price: Joi.number().min(0)
+            price: Joi.number().min(0),
+
+            //El campo de descripcion es opcional y puede ser un string vacio
+            description: Joi.string().allow('').optional().example('Sinopsis o descripción del libro')
         })
     }
 };

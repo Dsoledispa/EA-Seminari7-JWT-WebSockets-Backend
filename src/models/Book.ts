@@ -16,6 +16,7 @@ export interface IBook {
     language?: 'es' | 'ca' | 'en';
     tags?: string[];
     price?: number;
+    description?: string;
 }
 
 export interface IBookModel extends IBook, Document {}
@@ -39,7 +40,8 @@ const BookSchema: Schema = new Schema(
         pages: { type: Number, min: 1 },
         language: { type: String, enum: BOOK_LANGUAGES, default: 'es' },
         tags: { type: [String], enum: BOOK_TAGS, default: [] },
-        price: { type: Number, min: 0 }
+        price: { type: Number, min: 0 },
+        description: { type: String, trim: true }
     },
     {
         timestamps: true,

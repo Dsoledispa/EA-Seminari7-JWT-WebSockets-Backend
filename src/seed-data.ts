@@ -78,7 +78,12 @@ export const booksSeed: BookSeed[] = [
         pages: 863,
         language: 'es',
         tags: ['novela'],
-        price: 19.9
+        price: 19.9,
+        description: [
+            'En un lugar de la Mancha vive Alonso Quijano, un hidalgo apasionado por las novelas de caballerías hasta el punto de perder el juicio y creerse él mismo un caballero andante. Rebautizado como don Quijote de la Mancha y a lomos de su caballo Rocinante, decide lanzarse a los caminos en busca de aventuras, honra y justicia para consagrar sus hazañas a su amada Dulcinea del Toboso.',
+            'Acompañado por el ingenuo pero pragmático campesino Sancho Panza, convertido en su fiel escudero, la pareja protagoniza una sucesión de desventuras cómicas y conmovedoras, transformando ventas en castillos, molinos de viento en gigantes amenazantes y rebaños de ovejas en ejércitos formidables.',
+            'Obra cumbre de la literatura española y precursora indiscutible de la novela moderna, Cervantes teje una reflexión magistral sobre el choque entre los ideales heroicos y la cruda realidad del mundo cotidiano.'
+        ].join('\n\n')
     },
     {
         title: 'Novelas ejemplares',
@@ -138,7 +143,12 @@ export const booksSeed: BookSeed[] = [
         pages: 256,
         language: 'ca',
         tags: ['novela'],
-        price: 13.9
+        price: 13.9,
+        description: [
+            'Ambientada en el popular barrio de Gràcia en Barcelona, la historia sigue la vida de Natàlia, una joven tímida e ingenua a quien su primer marido, Quimet, apoda Colometa. A través de su mirada inocente y sensible, asistimos a la transformación de su rutina doméstica y a las dificultades de un matrimonio condicionado por las obsesiones de su esposo y la cría asfixiante de palomas.',
+            'El estallido de la Guerra Civil española y la posterior posguerra destruyen de forma implacable el frágil entorno de Colometa. Sometida al hambre, a la pérdida y a la soledad más desgarradora en una ciudad sitiada por el miedo y la miseria, la protagonista emprende una lucha desesperada por sacar adelante a sus dos hijos.',
+            'Considerada una de las obras capitales de la narrativa catalana del siglo XX, la novela destaca por su estilo íntimo y poético, convirtiéndose en un testimonio conmovedor sobre la resiliencia humana y el dolor silencioso de las personas comunes frente a los estragos del conflicto.'
+        ].join('\n\n')
     },
     {
         title: 'Mirall trencat',
