@@ -32,6 +32,11 @@ export interface IAuthor {
 
     role?: 'author' | 'admin';
 
+    // Marca si el autor esta borrado. Los autores borrados no se eliminan fisicamente de la base de datos
+    deleted: boolean;
+
+    deletedAt?: Date;
+
 }
 
 // Esta interfaz junta los datos del autor con las propiedades de un documento de MongoDB
@@ -46,7 +51,8 @@ const AuthorSchema: Schema = new Schema(
 
         // El email identifica al autor y por eso no puede repetirse
         // Tambien lo guardamos siempre en minusculas para evitar duplicados por mayusculas
-        email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+        // La unicidad se define mas abajo como indice parcial (solo para autores no borrados)
+        email: { type: String, required: true, lowercase: true, trim: true },
 
         // La contraseña es obligatoria pero no se muestra cuando hacemos consultas
         // Mas adelante se guarda cifrada antes de guardar el autor
@@ -70,7 +76,11 @@ const AuthorSchema: Schema = new Schema(
 
         // El rol solo puede ser author o admin
         // Si no se indica ninguno se asigna author por defecto
-        role: { type: String, enum: ['author', 'admin'], default: 'author' }
+        role: { type: String, enum: ['author', 'admin'], default: 'author' },
+
+        deleted: { type: Boolean, default: false },
+
+        deletedAt: { type: Date }
     },
 
     {
@@ -95,6 +105,12 @@ const AuthorSchema: Schema = new Schema(
     }
 
 );
+
+// Indice unico parcial del email: solo tiene que ser unico entre los autores no borrados.
+// Asi un autor borrado logicamente libera su email para que otro autor nuevo lo pueda usar.
+// Es importante definirlo con schema.index(): Mongoose ignora partialFilterExpression
+// cuando se pone como opcion del campo.
+AuthorSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { deleted: false } });
 
 // Este hook se ejecuta antes de guardar un autor en la base de datos
 AuthorSchema.pre('save', async function () {

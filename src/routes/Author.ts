@@ -104,14 +104,18 @@ router.put('/:authorId', ValidateId('authorId'), ValidateJoi(Schemas.author.upda
  * /authors/{authorId}:
  *   delete:
  *     tags: [Authors]
- *     summary: Borra un autor
+ *     summary: Borra un autor (borrado logico)
+ *     description: >
+ *       No se elimina fisicamente: el autor se marca como borrado (soft delete)
+ *       y deja de aparecer en el listado y en las busquedas por ID.
+ *       Su email queda libre para que otro autor pueda usarlo.
  *     parameters:
  *       - in: path
  *         name: authorId
  *         required: true
  *         schema: { type: string, pattern: '^[0-9a-fA-F]{24}$' }
  *     responses:
- *       204: { description: Autor borrado, sin contenido }
+ *       204: { description: Autor marcado como borrado, sin contenido }
  *       400: { $ref: '#/components/responses/BadRequest' }
  *       404: { $ref: '#/components/responses/NotFound' }
  */

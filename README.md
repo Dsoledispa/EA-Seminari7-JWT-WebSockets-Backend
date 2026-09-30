@@ -163,6 +163,7 @@ ejecución; simplemente no es necesario para enviar una respuesta de Express.
 src/
   server.ts        Punto de entrada: conecta con MongoDB, registra el middleware y las rutas, y arranca el servidor
   seed.ts          Script que llena la base de datos con los datos de ejemplo
+  migrate-indexes.ts  Script de una sola vez: adapta los índices únicos al borrado lógico
   seed-data.ts     Los datos de ejemplo: autores y libros
   config/          Lee las variables de entorno y las reúne en un objeto config
   library/         Utilidades compartidas
@@ -200,12 +201,12 @@ si un día se cambiara Express por otro framework, esas dos carpetas no habría 
 | GET | `/authors` | Lista todos los autores | |
 | GET | `/authors/:authorId` | Devuelve un autor | |
 | PUT | `/authors/:authorId` | Reemplaza los datos de un autor | `{ "name": "...", "email": "...", "password": "..." }` |
-| DELETE | `/authors/:authorId` | Borra un autor | |
+| DELETE | `/authors/:authorId` | Borra un autor (borrado lógico) | |
 | POST | `/books` | Crea un libro | `{ "title": "...", "authors": ["<id de un autor>"], "isbn": "..." }` |
 | GET | `/books` | Lista todos los libros, con los datos de sus autores | |
 | GET | `/books/:bookId` | Devuelve un libro, con los datos de sus autores | |
 | PUT | `/books/:bookId` | Reemplaza los datos de un libro | `{ "title": "...", "authors": ["<id de un autor>"], "isbn": "..." }` |
-| DELETE | `/books/:bookId` | Borra un libro | |
+| DELETE | `/books/:bookId` | Borra un libro (borrado lógico) | |
 
 Un autor tiene además estos campos opcionales: `birthDate`, `nationality`, `biography`, `website`,
 `photoUrl`, `active` y `role`. La contraseña nunca se devuelve en las respuestas.
@@ -223,6 +224,31 @@ curl -X POST http://localhost:1337/authors -H "Content-Type: application/json" -
 Códigos de respuesta: 201 al crear, 200 al leer o modificar, 204 al borrar, 400 si el id de la URL
 no tiene forma de id de MongoDB, 404 si el id no existe, 409 si el email o el ISBN ya existen,
 422 si el body no es válido y 500 si falla algo en el servidor.
+
+## Soft delete
+
+Borrar un autor o un libro con `DELETE` **no lo elimina de MongoDB**: lo marca como borrado
+(`deleted: true`) y guarda la fecha en `deletedAt`. A partir de ese momento:
+
+- `GET` del listado y `GET` por id ya no lo devuelven (404 en la búsqueda por id).
+- `PUT` sobre un documento borrado devuelve 404: no se puede modificar.
+- El email del autor y el ISBN del libro quedan libres, así que se pueden reutilizar en un documento
+  nuevo.
+
+Esto funciona porque los índices únicos de `Author.email` y `Book.isbn` son **parciales**:
+`partialFilterExpression: { deleted: false }`. La unicidad solo se aplica a los documentos no borrados.
+
+Mongoose **no** elimina el índice único antiguo de una base de datos que ya existía (solo crea
+índices nuevos). Por eso, si trabajas sobre una base de datos creada antes de esta versión, ejecuta
+una vez:
+
+```
+npm run migrate-indexes
+```
+
+El script borra los índices `email_1` e `isbn_1` antiguos y crea los parciales. Es idempotente: si ya
+están bien, no hace nada. Puedes comprobarlo con `db.authors.getIndexes()` y `db.books.getIndexes()`
+en `mongosh`.
 
 ## Documentación de la API
 

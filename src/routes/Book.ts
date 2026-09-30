@@ -105,14 +105,18 @@ router.put('/:bookId', ValidateId('bookId'), ValidateJoi(Schemas.book.update), c
  * /books/{bookId}:
  *   delete:
  *     tags: [Books]
- *     summary: Borra un libro
+ *     summary: Borra un libro (borrado logico)
+ *     description: >
+ *       No se elimina fisicamente: el libro se marca como borrado (soft delete)
+ *       y deja de aparecer en el listado y en las busquedas por ID.
+ *       Su ISBN queda libre para que otro libro pueda usarlo.
  *     parameters:
  *       - in: path
  *         name: bookId
  *         required: true
  *         schema: { type: string, pattern: '^[0-9a-fA-F]{24}$' }
  *     responses:
- *       204: { description: Libro borrado, sin contenido }
+ *       204: { description: Libro marcado como borrado, sin contenido }
  *       400: { $ref: '#/components/responses/BadRequest' }
  *       404: { $ref: '#/components/responses/NotFound' }
  */
