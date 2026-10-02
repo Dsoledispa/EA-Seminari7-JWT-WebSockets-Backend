@@ -1,7 +1,7 @@
 {
-    "name": "express-api-mongo-indepth",
+    "name": "ea-seminari7-jwt-websockets-backend",
     "version": "1.0.0",
-    "description": "",
+    "description": "API REST de autores y libros del Seminario 7 de EA: Express, TypeScript y MongoDB, con JWT y WebSockets",
     "main": "src/server.ts",
     "type": "commonjs",
     "engines": {

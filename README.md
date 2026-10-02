@@ -1,17 +1,27 @@
-# Seminari 5: API REST con Node.js, Express, TypeScript y MongoDB
+# Seminari 7: backend con JWT y WebSockets
 
-API REST de ejemplo con dos recursos, **autores** y **libros**, organizada en capas
-(rutas, middleware, controllers, services y models). Es la base sobre la que el equipo
-trabaja los objetivos del Seminario 5 de EA:
+API REST con dos recursos, **autores** y **libros**, organizada en capas (rutas, middleware,
+controllers, services y models). Es el backend del Seminario 7 de EA:
 
-- Estructura del proyecto
-- Middleware: CORS, entrada (validación o logger) y salida (gestor de errores)
-- Documentación con Swagger
-- Linter
+> Backend/Frontend: JWT, WebSockets. Backend TS + Express. Frontend Angular.
 
-Qué está hecho y qué queda por hacer: [CONTRIBUTING.md](CONTRIBUTING.md).
+Este repositorio parte del backend del Seminario 6, que a su vez venía del Seminario 5. Del S6 trae
+dos cambios respecto al S5: la descripción de los libros y el borrado lógico (ver
+[Soft delete](#soft-delete)). Sobre esa base, el equipo añade en este seminario:
 
-## Tecnologías
+- Autenticación con JWT: registro, login, refresh y rutas protegidas por rol
+- Paginación en el servidor de los listados de autores y libros
+- Extra: chat con WebSockets (socket.io) con los mensajes guardados en MongoDB
+
+El frontend Angular que consume esta API está en
+[EA-Seminari7-JWT-WebSockets-Frontend](https://github.com/Dsoledispa/EA-Seminari7-JWT-WebSockets-Frontend).
+
+Las tareas y la bitácora del seminario están en [LOGS.md](LOGS.md); cómo trabajamos (ramas, commits,
+pull requests), en [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Stack tecnológico
+
+Lo que ya está instalado y funcionando:
 
 | Tecnología | Versión | Para qué se usa |
 |---|---|---|
@@ -31,6 +41,15 @@ Qué está hecho y qué queda por hacer: [CONTRIBUTING.md](CONTRIBUTING.md).
 | [Oxlint](https://oxc.rs/docs/guide/usage/linter) | 1.85 | Analiza el código de `src/` y detecta errores comunes |
 | [Prettier](https://prettier.io/) | extensión de VS Code | Da formato al código al guardar (reglas en `.prettierrc`) |
 
+Lo que se añadirá durante el seminario (todavía **no** está instalado):
+
+| Tecnología | Para qué se usará |
+|---|---|
+| [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) | Firmar y verificar los tokens JWT (`sign` y `verify`) |
+| [socket.io](https://socket.io/) | Servidor de WebSockets del chat, enganchado al mismo servidor HTTP que Express |
+
+Las contraseñas no necesitan librería: se cifran con `scrypt`, que viene con Node (`node:crypto`).
+
 ## Requisitos previos
 
 - [Node.js](https://nodejs.org/) 24 LTS (mínimo 22.12). Incluye [npm](https://www.npmjs.com/).
@@ -43,8 +62,8 @@ TypeScript no hace falta instalarlo aparte: viene con las dependencias del proye
 ## Clonar el proyecto
 
 ```
-git clone https://github.com/Martatm18/EA-Seminari5-APIambExpress
-cd EA-Seminari5-APIambExpress
+git clone https://github.com/Dsoledispa/EA-Seminari7-JWT-WebSockets-Backend
+cd EA-Seminari7-JWT-WebSockets-Backend
 ```
 
 ## Instalar las dependencias
@@ -63,9 +82,13 @@ cp .env.example .env
 
 | Variable | Qué es | Valor por defecto |
 |---|---|---|
-| `MONGO_URL` | Dirección de tu MongoDB | `mongodb://127.0.0.1:27017/seminari5` |
+| `MONGO_URL` | Dirección de tu MongoDB | `mongodb://127.0.0.1:27017/seminari7` |
 | `SERVER_PORT` | Puerto en el que escucha la API | `1337` |
 | `CORS_ORIGIN` | Desde qué dirección se puede llamar a la API desde un navegador | `*` (cualquiera) |
+
+Cada seminario usa su propia base de datos (`seminari7`), así los datos del S5 o del S6 no se mezclan
+con los de este. Con una base de datos nueva no hace falta `npm run migrate-indexes`: los índices ya
+se crean bien desde el principio.
 
 ## Llenar la base de datos (la primera vez)
 
@@ -212,7 +235,7 @@ Un autor tiene además estos campos opcionales: `birthDate`, `nationality`, `bio
 `photoUrl`, `active` y `role`. La contraseña nunca se devuelve en las respuestas.
 
 Un libro tiene además: `edition`, `publisher`, `publishedYear`, `pages`, `language` (`es`, `ca` o `en`),
-`tags` (`ciencia-ficcion`, `fantasia`, `novela`, `ensayo`, `poesia`, `historia`) y `price`.
+`tags` (`ciencia-ficcion`, `fantasia`, `novela`, `ensayo`, `poesia`, `historia`), `price` y `description`.
 Un libro puede tener más de un autor, y necesita al menos uno.
 
 Ejemplo con curl (también sirve Postman o Thunder Client):
@@ -234,6 +257,8 @@ Borrar un autor o un libro con `DELETE` **no lo elimina de MongoDB**: lo marca c
 - `PUT` sobre un documento borrado devuelve 404: no se puede modificar.
 - El email del autor y el ISBN del libro quedan libres, así que se pueden reutilizar en un documento
   nuevo.
+- Un autor borrado **sigue apareciendo dentro de sus libros**: el documento sigue existiendo y el
+  `populate('authors')` lo encuentra. Es intencionado: el libro conserva quién lo escribió.
 
 Esto funciona porque los índices únicos de `Author.email` y `Book.isbn` son **parciales**:
 `partialFilterExpression: { deleted: false }`. La unicidad solo se aplica a los documentos no borrados.
@@ -264,4 +289,5 @@ Las piezas comunes (datos generales, esquemas y respuestas de error) están en `
 
 ## Cómo contribuir
 
-Ramas, commits y estado del proyecto en [CONTRIBUTING.md](CONTRIBUTING.md).
+Ramas, commits y pull requests en [CONTRIBUTING.md](CONTRIBUTING.md). Tareas pendientes y bitácora en
+[LOGS.md](LOGS.md).
