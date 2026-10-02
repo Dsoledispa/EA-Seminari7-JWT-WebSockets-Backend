@@ -93,7 +93,7 @@ const swaggerDocument = swaggerJsdoc({
         info: {
             title: 'Library API',
             version: '1.0.0',
-            description: 'API de autores y libros del Seminari 5 (Node.js, Express, TypeScript y MongoDB).'
+            description: 'API de autores y libros del Seminari 7 (Node.js, Express, TypeScript y MongoDB).'
         },
         servers: [{ url: `http://localhost:${config.server.port}` }],
         tags: [
