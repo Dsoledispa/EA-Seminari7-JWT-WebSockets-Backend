@@ -17,8 +17,6 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-*.md
-!README.md
 *.canvas
 *.py
 .obsidian
