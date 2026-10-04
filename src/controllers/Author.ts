@@ -45,8 +45,8 @@ const readAuthor = async (req: Request<{ authorId: string }>, res: Response, nex
 const readAll = async (req: Request, res: Response<unknown, { query: PaginationQuery }>, next: NextFunction) => {
     try {
         // Pedimos al servicio la pagina de autores y el total de autores no borrados
-        const { page, limit } = res.locals.query;
-        const result = await AuthorService.getAllAuthors(page, limit);
+        const { page, limit, search } = res.locals.query;
+        const result = await AuthorService.getAllAuthors(page, limit, search);
 
         // Devolvemos los autores junto con los datos de paginacion
         res.status(200).json(result);

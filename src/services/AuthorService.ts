@@ -1,4 +1,5 @@
 import Author, { IAuthor } from '../models/Author';
+import { escapeRegExp } from '../utils/escape-regexp';
 
 // Funcion que se encarga de crear un autor en la base de datos
 export const createAuthor = (data: IAuthor) => {
@@ -21,8 +22,12 @@ export const getAuthorById = (authorId: string) => {
 };
 
 // Funcion que busca una pagina de autores y cuenta los que no estan borrados
-export const getAllAuthors = (page: number, limit: number) => {
-    const filter = { deleted: false };
+export const getAllAuthors = (page: number, limit: number, search = '') => {
+    const searchRegex = search ? new RegExp(escapeRegExp(search), 'i') : undefined;
+    const filter = {
+        deleted: false,
+        ...(searchRegex ? { $or: [{ name: searchRegex }, { email: searchRegex }] } : {})
+    };
 
     return Promise.all([
         Author.find(filter)

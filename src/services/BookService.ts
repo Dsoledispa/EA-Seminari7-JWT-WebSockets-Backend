@@ -1,4 +1,5 @@
 import Book, { IBook } from '../models/Book';
+import { escapeRegExp } from '../utils/escape-regexp';
 
 // Funcion que se encarga de crear un libro en la base de datos
 export const createBook = (data: IBook) => {
@@ -17,8 +18,14 @@ export const getBookById = (bookId: string) => {
 };
 
 // Funcion que busca una pagina de libros y cuenta los que no estan borrados
-export const getAllBooks = (page: number, limit: number) => {
-    const filter = { deleted: false };
+export const getAllBooks = (page: number, limit: number, search = '') => {
+    const searchRegex = search ? new RegExp(escapeRegExp(search), 'i') : undefined;
+    const filter = {
+        deleted: false,
+        ...(searchRegex
+            ? { $or: [{ title: searchRegex }, { isbn: searchRegex }, { description: searchRegex }] }
+            : {})
+    };
 
     return Promise.all([
         Book.find(filter)

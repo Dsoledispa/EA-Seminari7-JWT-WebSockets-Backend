@@ -72,6 +72,10 @@ router.get('/:bookId', ValidateId('bookId'), controller.readBook);
  *         name: limit
  *         schema: { type: integer, minimum: 1, maximum: 100, default: 5 }
  *         description: Número de libros por página
+ *       - in: query
+ *         name: search
+ *         schema: { type: string, maxLength: 100 }
+ *         description: Buscar por título, ISBN o descripción
  *     responses:
  *       200: { $ref: '#/components/responses/BookList' }
  *       400: { $ref: '#/components/responses/InvalidPagination' }

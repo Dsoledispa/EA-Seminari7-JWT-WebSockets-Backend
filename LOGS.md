@@ -17,7 +17,9 @@ Lo que backend y frontend tienen que cumplir igual. Si algo de aquí cambia, se 
 - **Token**: se envía en la cabecera `Authorization: Bearer <token>`. Su payload lleva los claims `sub` (id del usuario), `role` y `exp`.
 - **Roles**: el CRUD del backoffice (autores y libros) es solo para `admin`. El chat es para todos los usuarios con sesión iniciada.
 - **Modelos**: `users`, `authors` y `books`. La autenticación vive solo en `User`: los campos `password` y `role` que `Author` traía del Seminario 5 se eliminan.
-- **Paginación**: `GET /authors?page=&limit=` y `GET /books?page=&limit=`, por defecto `page=1` y `limit=5`. Responden `{ authors, total, page, pages }` y `{ books, total, page, pages }`.
+- **Paginación y búsqueda**: `GET /authors?page=&limit=&search=` y `GET /books?page=&limit=&search=`, por defecto `page=1` y `limit=5` (máximo 100). `search` es opcional y busca parcialmente sin
+  distinguir mayúsculas: autores por nombre/email y libros por título/ISBN/descripción. Responden `{ authors, total, page, pages }` y `{ books, total, page, pages }` con metadatos calculados sobre los
+  resultados filtrados.
 - **Autores borrados**: un autor borrado (borrado lógico) sigue apareciendo dentro de sus libros.
 - **Chat** (extra): por concretar al empezar el bloque B: los payloads de `chat:join` y `chat:message`, la forma del mensaje que emite el servidor (usuario, texto, fecha), cómo llega el historial al
   entrar y cómo se llama la sala de un chat directo.
@@ -61,9 +63,9 @@ el servidor lo emite a los demás.
 
 ### Bloque C: paginación en el servidor
 
-- [x] `GET /authors` y `GET /books` con `?page=&limit=` (por defecto 1 y 5): `skip` y `limit` más `countDocuments`, y la respuesta con `total`, `page` y `pages`
-- [x] Validar `page` y `limit` con Joi
-- [x] Actualizar Swagger y, si hace falta más volumen para probar, ampliar el seed
+- [ ] `GET /authors` y `GET /books` con `?page=&limit=` (por defecto 1 y 5): `skip` y `limit` más `countDocuments`, y la respuesta con `total`, `page` y `pages`
+- [ ] Validar `page` y `limit` con Joi
+- [ ] Actualizar Swagger y, si hace falta más volumen para probar, ampliar el seed
 
 ### Extra opcional
 
@@ -92,3 +94,9 @@ el servidor lo emite a los demás.
 - Swagger documenta los parámetros, las respuestas paginadas y el error 400. El seed contiene 12 autores y 12 libros.
 - Decisiones: mantener fuera del listado y del total los documentos borrados lógicamente; conservar los autores borrados en los libros relacionados.
 - Validación ejecutada: `npm run build`, `npx oxlint` y comprobaciones de Joi, Swagger generado y cantidades/referencias del seed. No hay pruebas automatizadas ni script `test` en el paquete.
+
+### 2026-10-04 · Búsqueda de autores y libros
+
+- `GET /authors` admite `search` sobre nombre/email y `GET /books` sobre título/ISBN/descripción. La búsqueda literal, sin distinguir mayúsculas, se aplica antes de contar y paginar; Joi limita el
+  término a 100 caracteres y Swagger documenta el parámetro.
+- Validación ejecutada: `npm run build` y `npm run lint`.

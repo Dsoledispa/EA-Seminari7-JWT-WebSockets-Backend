@@ -71,6 +71,10 @@ router.get('/:authorId', ValidateId('authorId'), controller.readAuthor);
  *         name: limit
  *         schema: { type: integer, minimum: 1, maximum: 100, default: 5 }
  *         description: Número de autores por página
+ *       - in: query
+ *         name: search
+ *         schema: { type: string, maxLength: 100 }
+ *         description: Buscar por nombre o email
  *     responses:
  *       200: { $ref: '#/components/responses/AuthorList' }
  *       400: { $ref: '#/components/responses/InvalidPagination' }

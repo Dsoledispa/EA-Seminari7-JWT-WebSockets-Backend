@@ -138,7 +138,7 @@ const swaggerDocument = swaggerJsdoc({
                     { books: [bookExample], total: 12, page: 1, pages: 3 }
                 ),
                 BadRequest: errorResponse('El id de la URL no tiene forma de id de MongoDB', 'authorId no es un id válido'),
-                InvalidPagination: errorResponse('Los parámetros de paginación no son válidos', '"page" must be greater than or equal to 1'),
+                InvalidPagination: errorResponse('Los parámetros de paginación o búsqueda no son válidos', '"page" must be greater than or equal to 1'),
                 NotFound: errorResponse('No existe ningún recurso con ese id', 'not found'),
                 Conflict: errorResponse('Ya existe otro recurso con ese email o ese ISBN', 'email ya existe'),
                 Unprocessable: errorResponse('El body no cumple el esquema', '"email" is required'),

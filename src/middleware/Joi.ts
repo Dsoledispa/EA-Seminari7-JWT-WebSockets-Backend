@@ -8,6 +8,7 @@ import { BOOK_LANGUAGES, BOOK_TAGS, IBook } from '../models/Book';
 export interface PaginationQuery {
     page: number;
     limit: number;
+    search: string;
 }
 
 // Funcion que se encarga de validar los datos que llegan en una petición
@@ -54,7 +55,8 @@ export const Schemas = {
     // Validacion de los parametros de paginacion
     pagination: Joi.object<PaginationQuery>({
         page: Joi.number().integer().min(1).default(1),
-        limit: Joi.number().integer().min(1).max(100).default(5)
+        limit: Joi.number().integer().min(1).max(100).default(5),
+        search: Joi.string().trim().max(100).allow('').default('')
     }),
 
     // Validaciones relacionadas con los autores
