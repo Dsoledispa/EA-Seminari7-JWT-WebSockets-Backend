@@ -2,7 +2,7 @@ import express from 'express';
 
 import controller from '../controllers/Author';
 
-import { Schemas, ValidateId, ValidateJoi } from '../middleware/Joi';
+import { Schemas, ValidateId, ValidateJoi, ValidatePagination } from '../middleware/Joi';
 
 // Creamos el router que se encargara de las rutas relacionadas con los autores
 const router = express.Router();
@@ -62,13 +62,23 @@ router.get('/:authorId', ValidateId('authorId'), controller.readAuthor);
  *   get:
  *     tags: [Authors]
  *     summary: Lista todos los autores
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *         description: Número de página
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 5 }
+ *         description: Número de autores por página
  *     responses:
  *       200: { $ref: '#/components/responses/AuthorList' }
+ *       400: { $ref: '#/components/responses/InvalidPagination' }
  *       500: { $ref: '#/components/responses/ServerError' }
  */
 
 // Ruta para obtener todos los autores
-router.get('/', controller.readAll);
+router.get('/', ValidatePagination, controller.readAll);
 
 /**
  * @openapi

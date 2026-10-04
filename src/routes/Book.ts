@@ -2,7 +2,7 @@ import express from 'express';
 
 import controller from '../controllers/Book';
 
-import { Schemas, ValidateId, ValidateJoi } from '../middleware/Joi';
+import { Schemas, ValidateId, ValidateJoi, ValidatePagination } from '../middleware/Joi';
 
 // Creamos el router que se encargara de las rutas relacionadas con los libros
 const router = express.Router();
@@ -63,13 +63,23 @@ router.get('/:bookId', ValidateId('bookId'), controller.readBook);
  *   get:
  *     tags: [Books]
  *     summary: Lista todos los libros, con los datos de sus autores
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *         description: Número de página
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 5 }
+ *         description: Número de libros por página
  *     responses:
  *       200: { $ref: '#/components/responses/BookList' }
+ *       400: { $ref: '#/components/responses/InvalidPagination' }
  *       500: { $ref: '#/components/responses/ServerError' }
  */
 
 // Ruta para obtener todos los libros
-router.get('/', controller.readAll);
+router.get('/', ValidatePagination, controller.readAll);
 
 /**
  * @openapi
