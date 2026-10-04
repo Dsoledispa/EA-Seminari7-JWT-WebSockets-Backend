@@ -2,7 +2,7 @@ import express from 'express';
 
 import controller from '../controllers/Author';
 
-import { Schemas, ValidateId, ValidateJoi } from '../middleware/Joi';
+import { Schemas, ValidateId, ValidateJoi, ValidatePagination } from '../middleware/Joi';
 
 // Creamos el router que se encargara de las rutas relacionadas con los autores
 const router = express.Router();
@@ -68,7 +68,7 @@ router.get('/:authorId', ValidateId('authorId'), controller.readAuthor);
  */
 
 // Ruta para obtener todos los autores
-router.get('/', controller.readAll);
+router.get('/', ValidatePagination, controller.readAll);
 
 /**
  * @openapi

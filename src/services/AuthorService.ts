@@ -20,13 +20,22 @@ export const getAuthorById = (authorId: string) => {
 
 };
 
-// Funcion que busca todos los autores de la base de datos
-export const getAllAuthors = () => {
+// Funcion que busca una pagina de autores y cuenta los que no estan borrados
+export const getAllAuthors = (page: number, limit: number) => {
+    const filter = { deleted: false };
 
-    // Devolvemos todos los autores que hay guardados.
-    // Filtramos deleted: false para dejar fuera los autores borrados logicamente.
-    return Author.find({ deleted: false });
-
+    return Promise.all([
+        Author.find(filter)
+            .sort({ _id: 1 })
+            .skip((page - 1) * limit)
+            .limit(limit),
+        Author.countDocuments(filter)
+    ]).then(([authors, total]) => ({
+        authors,
+        total,
+        page,
+        pages: Math.ceil(total / limit)
+    }));
 };
 
 // Funcion que se encarga de actualizar un autor
@@ -79,4 +88,3 @@ export default {
     deleteAuthor
 
 };
-
