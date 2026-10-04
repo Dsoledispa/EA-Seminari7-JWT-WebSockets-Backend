@@ -61,9 +61,9 @@ el servidor lo emite a los demás.
 
 ### Bloque C: paginación en el servidor
 
-- [ ] `GET /authors` y `GET /books` con `?page=&limit=` (por defecto 1 y 5): `skip` y `limit` más `countDocuments`, y la respuesta con `total`, `page` y `pages`
-- [ ] Validar `page` y `limit` con Joi
-- [ ] Actualizar Swagger y, si hace falta más volumen para probar, ampliar el seed
+- [x] `GET /authors` y `GET /books` con `?page=&limit=` (por defecto 1 y 5): `skip` y `limit` más `countDocuments`, y la respuesta con `total`, `page` y `pages`
+- [x] Validar `page` y `limit` con Joi
+- [x] Actualizar Swagger y, si hace falta más volumen para probar, ampliar el seed
 
 ### Extra opcional
 
@@ -83,3 +83,13 @@ el servidor lo emite a los demás.
   estilo (comentarios en línea, clase con solo métodos estáticos en `Logging.ts`, funciones largas, `async` sin `await`...) y ningún fallo. En el frontend se prueba angular-eslint para comparar las
   dos herramientas.
 - IA: Claude Code (Anthropic). Prompts: reconocimiento de los dos repositorios y del stack, explicación del borrado lógico, plan de la tarea `structure` y ejecución de ese plan.
+
+### 2026-10-04 · Paginación en el servidor (Bloque C)
+
+- Se implementa la paginación de `GET /authors` y `GET /books`, con `page=1` y `limit=5` por defecto. Joi valida enteros, `page >= 1` y `1 <= limit <= 100`; los valores convertidos se guardan en
+  `res.locals.query` y los inválidos responden 400.
+- Las consultas usan `skip`, `limit` y orden estable por `_id`; `countDocuments` comparte el filtro `{ deleted: false }`. La respuesta incluye la lista correspondiente, `total`, `page` y `pages`. El
+  `populate('authors')` de libros no filtra autores borrados lógicamente.
+- Swagger documenta los parámetros, las respuestas paginadas y el error 400. El seed contiene 12 autores y 12 libros.
+- Decisiones: mantener fuera del listado y del total los documentos borrados lógicamente; conservar los autores borrados en los libros relacionados.
+- Validación ejecutada: `npm run build`, `npx oxlint` y comprobaciones de Joi, Swagger generado y cantidades/referencias del seed. No hay pruebas automatizadas ni script `test` en el paquete.
