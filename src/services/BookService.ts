@@ -16,11 +16,23 @@ export const getBookById = (bookId: string) => {
     return Book.findOne({ _id: bookId, deleted: false }).populate('authors');
 };
 
-// Funcion que busca todos los libros de la base de datos
-export const getAllBooks = () => {
-    // Buscamos todos los libros y obtenemos tambien los datos de sus autores.
-    // Filtramos deleted: false para dejar fuera los libros borrados logicamente.
-    return Book.find({ deleted: false }).populate('authors');
+// Funcion que busca una pagina de libros y cuenta los que no estan borrados
+export const getAllBooks = (page: number, limit: number) => {
+    const filter = { deleted: false };
+
+    return Promise.all([
+        Book.find(filter)
+            .populate('authors')
+            .sort({ _id: 1 })
+            .skip((page - 1) * limit)
+            .limit(limit),
+        Book.countDocuments(filter)
+    ]).then(([books, total]) => ({
+        books,
+        total,
+        page,
+        pages: Math.ceil(total / limit)
+    }));
 };
 
 // Funcion que se encarga de actualizar un libro

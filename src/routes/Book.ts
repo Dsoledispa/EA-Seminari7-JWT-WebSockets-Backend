@@ -2,7 +2,7 @@ import express from 'express';
 
 import controller from '../controllers/Book';
 
-import { Schemas, ValidateId, ValidateJoi } from '../middleware/Joi';
+import { Schemas, ValidateId, ValidateJoi, ValidatePagination } from '../middleware/Joi';
 
 // Creamos el router que se encargara de las rutas relacionadas con los libros
 const router = express.Router();
@@ -69,7 +69,7 @@ router.get('/:bookId', ValidateId('bookId'), controller.readBook);
  */
 
 // Ruta para obtener todos los libros
-router.get('/', controller.readAll);
+router.get('/', ValidatePagination, controller.readAll);
 
 /**
  * @openapi
