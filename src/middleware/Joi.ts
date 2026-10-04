@@ -5,6 +5,11 @@ import { NextFunction, Request, Response } from 'express';
 import { IAuthor } from '../models/Author';
 import { BOOK_LANGUAGES, BOOK_TAGS, IBook } from '../models/Book';
 
+export interface PaginationQuery {
+    page: number;
+    limit: number;
+}
+
 // Funcion que se encarga de validar los datos que llegan en una petición
 // Recibe un esquema de Joi y comprueba que el body cumple sus condiciones
 export const ValidateJoi = (schema: ObjectSchema) => {
@@ -46,6 +51,12 @@ export const ValidateId = (paramName: string) => {
 
 // Aqui tenemos todos los esquemas de validacion que utilizamos en la aplicacion
 export const Schemas = {
+    // Validacion de los parametros de paginacion
+    pagination: Joi.object<PaginationQuery>({
+        page: Joi.number().integer().min(1).default(1),
+        limit: Joi.number().integer().min(1).max(100).default(5)
+    }),
+
     // Validaciones relacionadas con los autores
     author: {
         // Esquema que se utiliza cuando queremos crear un autor
@@ -172,4 +183,15 @@ export const Schemas = {
             description: Joi.string().allow('').optional().example('Sinopsis o descripción del libro')
         })
     }
+};
+
+export const ValidatePagination = (req: Request, res: Response, next: NextFunction) => {
+    const { error, value } = Schemas.pagination.validate(req.query);
+
+    if (error) {
+        return res.status(400).json({ message: error.details[0].message });
+    }
+
+    res.locals.query = value;
+    next();
 };
