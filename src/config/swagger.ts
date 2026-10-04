@@ -110,10 +110,35 @@ const swaggerDocument = swaggerJsdoc({
             },
             responses: {
                 AuthorOne: okResponse('Un autor', { type: 'object', properties: { author: authorSchema } }, { author: authorExample }),
-                AuthorList: okResponse('La lista de autores', { type: 'object', properties: { authors: { type: 'array', items: authorSchema } } }, { authors: [authorExample] }),
+                AuthorList: okResponse(
+                    'Una página de autores y los datos de paginación',
+                    {
+                        type: 'object',
+                        properties: {
+                            authors: { type: 'array', items: authorSchema },
+                            total: { type: 'integer', example: 12 },
+                            page: { type: 'integer', example: 1 },
+                            pages: { type: 'integer', example: 3 }
+                        }
+                    },
+                    { authors: [authorExample], total: 12, page: 1, pages: 3 }
+                ),
                 BookOne: okResponse('Un libro, con los datos de sus autores', { type: 'object', properties: { book: bookSchema } }, { book: bookExample }),
-                BookList: okResponse('La lista de libros, con los datos de sus autores', { type: 'object', properties: { books: { type: 'array', items: bookSchema } } }, { books: [bookExample] }),
+                BookList: okResponse(
+                    'Una página de libros y los datos de paginación',
+                    {
+                        type: 'object',
+                        properties: {
+                            books: { type: 'array', items: bookSchema },
+                            total: { type: 'integer', example: 12 },
+                            page: { type: 'integer', example: 1 },
+                            pages: { type: 'integer', example: 3 }
+                        }
+                    },
+                    { books: [bookExample], total: 12, page: 1, pages: 3 }
+                ),
                 BadRequest: errorResponse('El id de la URL no tiene forma de id de MongoDB', 'authorId no es un id válido'),
+                InvalidPagination: errorResponse('Los parámetros de paginación no son válidos', '"page" must be greater than or equal to 1'),
                 NotFound: errorResponse('No existe ningún recurso con ese id', 'not found'),
                 Conflict: errorResponse('Ya existe otro recurso con ese email o ese ISBN', 'email ya existe'),
                 Unprocessable: errorResponse('El body no cumple el esquema', '"email" is required'),
