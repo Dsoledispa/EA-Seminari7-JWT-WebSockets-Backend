@@ -63,9 +63,9 @@ el servidor lo emite a los demás.
 
 ### Bloque C: paginación en el servidor
 
-- [ ] `GET /authors` y `GET /books` con `?page=&limit=` (por defecto 1 y 5): `skip` y `limit` más `countDocuments`, y la respuesta con `total`, `page` y `pages`
-- [ ] Validar `page` y `limit` con Joi
-- [ ] Actualizar Swagger y, si hace falta más volumen para probar, ampliar el seed
+- [x] `GET /authors` y `GET /books` con `?page=&limit=` (por defecto 1 y 5): `skip` y `limit` más `countDocuments`, y la respuesta con `total`, `page` y `pages`
+- [x] Validar `page` y `limit` con Joi
+- [x] Actualizar Swagger y, si hace falta más volumen para probar, ampliar el seed
 
 ### Extra opcional
 
