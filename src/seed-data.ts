@@ -65,6 +65,62 @@ export const authorsSeed: IAuthor[] = [
         photoUrl: 'https://example.com/fotos/asimov.jpg',
         role: 'admin',
         deleted: false
+    },
+    {
+        name: 'Mary Shelley',
+        email: 'shelley@example.com',
+        password: 'seminari5',
+        nationality: 'Reino Unido',
+        role: 'author',
+        deleted: false
+    },
+    {
+        name: 'Jane Austen',
+        email: 'austen@example.com',
+        password: 'seminari5',
+        nationality: 'Reino Unido',
+        role: 'author',
+        deleted: false
+    },
+    {
+        name: 'Gabriel García Márquez',
+        email: 'marquez@example.com',
+        password: 'seminari5',
+        nationality: 'Colombia',
+        role: 'author',
+        deleted: false
+    },
+    {
+        name: 'Julio Cortázar',
+        email: 'cortazar@example.com',
+        password: 'seminari5',
+        nationality: 'Argentina',
+        role: 'author',
+        deleted: false
+    },
+    {
+        name: 'Toni Morrison',
+        email: 'morrison@example.com',
+        password: 'seminari5',
+        nationality: 'Estados Unidos',
+        role: 'author',
+        deleted: false
+    },
+    {
+        name: 'George Orwell',
+        email: 'orwell@example.com',
+        password: 'seminari5',
+        nationality: 'Reino Unido',
+        role: 'author',
+        deleted: false
+    },
+    {
+        name: 'Octavia E. Butler',
+        email: 'butler@example.com',
+        password: 'seminari5',
+        nationality: 'Estados Unidos',
+        role: 'author',
+        deleted: false
     }
 ];
 
