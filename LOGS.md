@@ -82,7 +82,6 @@ el servidor lo emite a los demás.
 - Linter: Oxlint (heredado del S5) pasa sin avisos con la configuración del proyecto (`.oxlintrc.json`). Por curiosidad se probó con las categorías `suspicious` y `pedantic`: salen 8 sugerencias de
   estilo (comentarios en línea, clase con solo métodos estáticos en `Logging.ts`, funciones largas, `async` sin `await`...) y ningún fallo. En el frontend se prueba angular-eslint para comparar las
   dos herramientas.
-- IA: Claude Code (Anthropic). Prompts: reconocimiento de los dos repositorios y del stack, explicación del borrado lógico, plan de la tarea `structure` y ejecución de ese plan.
 
 ### 2026-10-04 · Paginación en el servidor (Bloque C)
 
