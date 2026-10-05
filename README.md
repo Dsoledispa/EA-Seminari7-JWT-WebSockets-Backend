@@ -38,15 +38,10 @@ Lo que ya está instalado y funcionando:
 | [swagger-jsdoc](https://github.com/Surnet/swagger-jsdoc) | 6.3 | Construye esa documentación leyendo los comentarios `@openapi` de las rutas |
 | [joi-to-swagger](https://github.com/Twipped/joi-to-swagger) | 6.2 | Convierte los esquemas de Joi en los esquemas de la documentación |
 | [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) | 9.0 | Firma y verifica los tokens JWT (`sign` y `verify`) |
+| [socket.io](https://socket.io/) | 4.8 | Servidor de WebSockets del chat, enganchado al mismo servidor HTTP que Express |
 | [tsx](https://tsx.is/) | 4.23 | Ejecuta TypeScript sin compilar y reinicia la API al guardar (`npm run dev`) |
 | [Oxlint](https://oxc.rs/docs/guide/usage/linter) | 1.85 | Analiza el código de `src/` y detecta errores comunes |
 | [Prettier](https://prettier.io/) | extensión de VS Code | Da formato al código al guardar (reglas en `.prettierrc`) |
-
-Lo que se añadirá durante el seminario (todavía **no** está instalado):
-
-| Tecnología | Para qué se usará |
-|---|---|
-| [socket.io](https://socket.io/) | Servidor de WebSockets del chat, enganchado al mismo servidor HTTP que Express |
 
 Las contraseñas no necesitan librería: se cifran con `scrypt`, que viene con Node (`node:crypto`).
 
@@ -208,7 +203,7 @@ ejecución; simplemente no es necesario para enviar una respuesta de Express.
 
 ```
 src/
-  server.ts        Punto de entrada: conecta con MongoDB, registra el middleware y las rutas, y arranca el servidor
+  server.ts        Punto de entrada: conecta con MongoDB, registra el middleware y las rutas, engancha el chat y arranca el servidor
   seed.ts          Script que llena la base de datos con los datos de ejemplo
   migrate-indexes.ts  Script de una sola vez: adapta los índices únicos al borrado lógico
   migrate-authors.ts  Script de una sola vez: quita password y role de los autores guardados antes del S7
@@ -217,21 +212,24 @@ src/
   library/         Utilidades compartidas
     Logging.ts       Mensajes de consola con fecha y color (info, warning, error)
   routes/          El mapa de URLs: qué petición va a qué controller
-    Auth.ts, Author.ts, Book.ts
+    Auth.ts, Author.ts, Book.ts, Users.ts
   middleware/      Lo que se ejecuta entre la ruta y el controller
     VerifyToken.ts   Comprueba el token de la cabecera Authorization y deja el usuario en req.user (401)
     RequireRole.ts   Deja pasar solo a un rol concreto (403)
+    SocketAuth.ts    Comprueba el token al conectar un socket del chat
     Joi.ts           Guardas: validan el body (422) y el id de la URL (400)
     Cors.ts          Cabeceras de CORS, configuradas con CORS_ORIGIN
     Logger.ts        Escribe en consola cada petición y su código de respuesta
     ErrorHandler.ts  Convierte cualquier error en su código: 400, 401, 404, 409, 422 o 500
   controllers/     Leen la petición (req), llaman al service y eligen la respuesta (res)
-    Auth.ts, Author.ts, Book.ts
+    Auth.ts, Author.ts, Book.ts, Users.ts
   services/        Leen y escriben en la base de datos a través de los models. No saben que existe HTTP
     AuthService.ts, AuthorService.ts, BookService.ts
   models/          Esquemas de Mongoose: qué campos tiene cada documento y de qué tipo
-    User.ts, Author.ts, Book.ts
-  types/           Tipos compartidos: el contenido de los tokens y el campo req.user de Express
+    User.ts, Author.ts, Book.ts, Message.ts
+  sockets/         El chat: socket.io y sus eventos
+    Chat.ts          Salas, historial y envío de mensajes
+  types/           Tipos compartidos: el contenido de los tokens, req.user de Express y los eventos del chat
   utils/           Funciones pequeñas sin dependencias de Express
     password.ts      Cifra y comprueba contraseñas con scrypt
 ```
@@ -278,6 +276,7 @@ Qué está protegido (en `server.ts`):
 |---|---|
 | `/auth/register`, `/auth/login`, `/auth/refresh` | Cualquiera (refresh necesita un refresh token válido) |
 | `/ping`, `/api-docs` | Cualquiera |
+| `/users` y el chat | Cualquier usuario con sesión |
 | `/authors`, `/books` (todas sus operaciones) | Solo `admin` |
 
 Decisiones y límites, porque es un proyecto de clase:
@@ -297,10 +296,61 @@ curl -X POST http://localhost:1337/auth/login -H "Content-Type: application/json
 curl http://localhost:1337/authors -H "Authorization: Bearer <el token de la respuesta anterior>"
 ```
 
+## Chat (WebSockets)
+
+Una petición HTTP siempre la empieza el cliente: pregunta y el servidor responde. En un chat, en
+cambio, el servidor tiene que **avisar** al cliente cuando otro usuario escribe. Para eso se usa un
+WebSocket: una conexión que se queda abierta y por la que los dos lados pueden enviar mensajes cuando
+quieran. [socket.io](https://socket.io/) lo hace fácil y se engancha al mismo servidor HTTP que
+Express, así que la API y el chat comparten el puerto 1337. El código está en `src/sockets/Chat.ts`.
+
+Con socket.io todo son **eventos** con un nombre: un lado los envía con `emit` y el otro los recibe
+con `on`.
+
+| Evento | Quién lo envía | Datos | Qué pasa |
+|---|---|---|---|
+| `chat:join` | Cliente | `{ room }` | El servidor mete al cliente en la sala y le contesta con `chat:history` |
+| `chat:history` | Servidor, solo a quien entra | Lista de mensajes | Los 50 últimos de la sala, del más antiguo al más nuevo |
+| `chat:message` | Cliente | `{ room, text }` | El servidor lo guarda en MongoDB y lo reenvía a la sala |
+| `chat:message` | Servidor, a toda la sala | Un mensaje | Le llega a todos los que están en la sala, también a quien lo escribió |
+| `chat:error` | Servidor, a un cliente | `{ message }` | Algo no se ha podido hacer (sala no permitida, mensaje vacío...) |
+
+Un mensaje del servidor tiene esta forma: `{ _id, room, user: { _id, name }, text, timestamp }`.
+
+El recorrido de un mensaje:
+
+1. El cliente se conecta enviando su access token: `io('http://localhost:1337', { auth: { token } })`.
+   El middleware `SocketAuth` lo comprueba; si no vale, rechaza la conexión con `Authentication error`.
+2. El cliente emite `chat:join` con una sala. El servidor hace `socket.join(sala)` y le envía el
+   historial.
+3. El cliente emite `chat:message`. El servidor coge el autor del token (nunca del mensaje), lo guarda
+   con el modelo `Message` y hace `io.to(sala).emit('chat:message', mensaje)`.
+
+Hay tres niveles de chat, según el nombre de la sala:
+
+| Sala | Nombre | Quién entra |
+|---|---|---|
+| General | `general` | Cualquier usuario con sesión |
+| Grupo | `group:<nombre>`, por ejemplo `group:seminario-7` | Quien conozca el nombre |
+| Directo | `direct:<idA>:<idB>`, con los dos ids ordenados | Solo esos dos usuarios |
+
+Los ids se ordenan para que los dos usuarios generen el mismo nombre de sala sin ponerse de acuerdo.
+`GET /users` da la lista de usuarios (solo id y nombre) para elegir con quién hablar. El servidor
+comprueba que quien entra en un chat directo es uno de los dos: si no, responde `chat:error`.
+
+Un límite que conviene saber: el token solo se comprueba al conectar. Si caduca con el socket ya
+abierto, el chat sigue funcionando hasta que se cierra la conexión; al volver a conectar hace falta un
+token válido (el frontend lo renueva solo).
+
+Los tipos de los eventos (`ClientToServerEvents` y `ServerToClientEvents`) están en
+`src/types/chat.ts`: con ellos TypeScript avisa si se emite un evento que no existe o con datos
+equivocados.
+
 ## Endpoints
 
 Todas las rutas salvo `/auth/*` y `/ping` necesitan la cabecera `Authorization: Bearer <token>`, y las
-de autores y libros, además, el rol `admin` (ver [Autenticación](#autenticación)).
+de autores y libros, además, el rol `admin` (ver [Autenticación](#autenticación)). El chat no usa
+estas rutas: va por WebSocket (ver [Chat](#chat-websockets)).
 
 | Método | URL | Qué hace | Body |
 |---|---|---|---|
@@ -308,6 +358,7 @@ de autores y libros, además, el rol `admin` (ver [Autenticación](#autenticaci�
 | POST | `/auth/register` | Registra un usuario (rol `user`). No devuelve token | `{ "name": "...", "email": "...", "password": "..." }` |
 | POST | `/auth/login` | Inicia sesión: devuelve `{ token, refreshToken, user }` | `{ "email": "...", "password": "..." }` |
 | POST | `/auth/refresh` | Devuelve un access token nuevo: `{ token }` | `{ "refreshToken": "..." }` |
+| GET | `/users` | Lista los usuarios (`_id` y `name`) para el chat directo. Cualquier usuario con sesión | |
 | POST | `/authors` | Crea un autor | `{ "name": "...", "email": "..." }` |
 | GET | `/authors` | Lista los autores, paginados (`?page=&limit=&search=`) | |
 | GET | `/authors/:authorId` | Devuelve un autor | |

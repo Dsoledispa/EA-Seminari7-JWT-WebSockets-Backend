@@ -27,8 +27,15 @@ Lo que backend y frontend tienen que cumplir igual. Si algo de aquí cambia, se 
   distinguir mayúsculas: autores por nombre/email y libros por título/ISBN/descripción. Responden `{ authors, total, page, pages }` y `{ books, total, page, pages }` con metadatos calculados sobre los
   resultados filtrados.
 - **Autores borrados**: un autor borrado (borrado lógico) sigue apareciendo dentro de sus libros.
-- **Chat** (extra): por concretar al empezar el bloque B: los payloads de `chat:join` y `chat:message`, la forma del mensaje que emite el servidor (usuario, texto, fecha), cómo llega el historial al
-  entrar y cómo se llama la sala de un chat directo.
+- **Chat** (extra):
+  - Conexión: `io(url, { auth: { token } })` con el access token. Si falta, es falso o ha caducado, el servidor rechaza la conexión y el cliente recibe `connect_error` con el mensaje
+    `Authentication error`.
+  - Salas: `general`, `group:<nombre>` y `direct:<idA>:<idB>` (los dos ids ordenados; solo entran esos dos usuarios). Cualquier otro nombre se rechaza con `chat:error`.
+  - Del cliente al servidor: `chat:join` con `{ room }` y `chat:message` con `{ room, text }` (de 1 a 2000 caracteres; hay que haber entrado antes en la sala).
+  - Del servidor al cliente: `chat:history` (solo a quien entra: los 50 últimos mensajes de la sala, del más antiguo al más nuevo), `chat:message` (a toda la sala, también a quien lo
+    escribió) y `chat:error` con `{ message }`.
+  - Un mensaje es `{ _id, room, user: { _id, name }, text, timestamp }`.
+  - `GET /users` (con sesión, cualquier rol) responde `{ users: [{ _id, name }] }`, ordenados por nombre, para elegir con quién hablar en el chat directo.
 
 ## Tareas
 
@@ -58,14 +65,14 @@ Lo que backend y frontend tienen que cumplir igual. Si algo de aquí cambia, se 
 Extra: el profesor lo marcó como no prioritario y seguramente no entra en la demo. Se mantiene simple: lo importante es poder explicar el flujo de un mensaje, desde que un usuario lo escribe hasta que
 el servidor lo emite a los demás.
 
-- [ ] Enganchar socket.io al `http.createServer(app)` que ya existe en `server.ts`
-- [ ] Middleware de socket.io que valida el JWT del handshake (`auth: { token }`) antes de aceptar la conexión
-- [ ] Chat a tres niveles con salas (rooms): sala general, salas de grupo y chat directo entre dos usuarios
-- [ ] Eventos `connection`, `disconnect`, `chat:join` y `chat:message` (emisión a la sala), con los tipos de los eventos de cliente a servidor y de servidor a cliente
-- [ ] Endpoint para listar usuarios, necesario para elegir con quién hablar en el chat directo
-- [ ] Modelo `Message` en MongoDB (sala, usuario, texto, fecha): cada mensaje se guarda al recibirlo
-- [ ] Historial: al entrar en una sala, el servidor envía los últimos mensajes guardados
-- [ ] CORS del servidor de sockets y logger de conexiones, desconexiones y fallos de autenticación
+- [x] Enganchar socket.io al `http.createServer(app)` que ya existe en `server.ts`
+- [x] Middleware de socket.io que valida el JWT del handshake (`auth: { token }`) antes de aceptar la conexión
+- [x] Chat a tres niveles con salas (rooms): sala general, salas de grupo y chat directo entre dos usuarios
+- [x] Eventos `connection`, `disconnect`, `chat:join` y `chat:message` (emisión a la sala), con los tipos de los eventos de cliente a servidor y de servidor a cliente
+- [x] Endpoint para listar usuarios, necesario para elegir con quién hablar en el chat directo
+- [x] Modelo `Message` en MongoDB (sala, usuario, texto, fecha): cada mensaje se guarda al recibirlo
+- [x] Historial: al entrar en una sala, el servidor envía los últimos mensajes guardados
+- [x] CORS del servidor de sockets y logger de conexiones, desconexiones y fallos de autenticación
 
 ### Bloque C: paginación en el servidor
 
@@ -135,3 +142,27 @@ el servidor lo emite a los demás.
   mala), 401 sin token, sin `Bearer`, con token mal formado, con firma falsa, con un refresh token en lugar del access y con un token caducado (instancia con `JWT_EXPIRES_IN=2s`), 403 como
   `user` en autores y libros, 200 como `admin` con la paginación y la búsqueda intactas y sin `password` ni `role` en los autores, 422 al crear un autor con `password`, refresh correcto
   (también tras caducar el access) y 401 si se le pasa un access token. Se comprueba también el documento de Swagger generado y que la API no arranca sin `JWT_SECRET`.
+
+### 2026-10-05 · Chat con WebSockets (Bloque B)
+
+- socket.io 4.8 enganchado al mismo `http.createServer` que Express: la API y el chat comparten el puerto.
+- Middleware `SocketAuth` (`VerifySocketToken`): valida el access token del handshake (`auth: { token }`) y guarda el id del usuario en `socket.data.user`; si no vale, rechaza la conexión con
+  `Authentication error` y lo apunta en el log.
+- Eventos `chat:join` (entra en la sala y devuelve el historial), `chat:message` (guarda y reenvía a la sala), `chat:history`, `chat:error` y `disconnect`, con los datos de la red comprobados a
+  mano porque los tipos de TypeScript no validan lo que llega por el socket. El autor de cada mensaje sale del token, nunca de lo que envía el cliente.
+- Modelo `Message` (sala, usuario, texto, fecha). El historial son los 50 últimos mensajes, con el nombre del autor (`populate`).
+- `GET /users` (con sesión, cualquier rol) con el id y el nombre de los usuarios, para el chat directo.
+- Revisión antes de presentar:
+  - **Fallo de privacidad corregido**: cualquier usuario con sesión podía hacer `chat:join` en el chat directo de otros dos (los ids salen en `GET /users`), leer su historial y escribir en
+    él. Ahora `canJoinRoom` solo acepta los nombres del contrato y, en `direct:<idA>:<idB>`, que los ids estén ordenados y que uno sea el del usuario. Como `chat:message` exige haber
+    entrado en la sala, tampoco se puede escribir.
+  - La lógica del chat sale de `server.ts` a `sockets/Chat.ts` (`StartChat`), que explica en un comentario el recorrido de un mensaje. Los eventos quedan tipados (`ClientToServerEvents`,
+    `ServerToClientEvents` y `SocketData` en `types/chat.ts`), como pedía la tarea.
+  - Límite de 2000 caracteres por mensaje (`chat:error` y `maxlength` en el modelo), el mismo que el campo del frontend.
+  - Swagger documenta `GET /users`. El README explica el chat (eventos, salas, recorrido de un mensaje) y el Contrato queda concretado en los dos LOGS.md.
+  - Límite que se deja así y se documenta: el token solo se comprueba al conectar; un socket abierto sigue funcionando aunque el token caduque.
+- Validación ejecutada: `npm run build` y `npm run lint` sin errores. Con la API arrancada contra una base de datos de prueba y tokens de 20 segundos, 29 pruebas con `socket.io-client` desde
+  Node, todas correctas: `GET /users` (401 sin token; con sesión, solo `_id` y `name`), conexión rechazada sin token, con token falso, con refresh token y con token caducado; mensajes en
+  la sala general, de grupo y directa que solo reciben los de la sala; historial guardado y en orden; autor sacado del token; `chat:error` sin haber entrado, con texto vacío o de más de
+  2000 caracteres, con una sala fuera del contrato, con los ids de un directo sin ordenar y al intentar entrar o escribir en un directo ajeno. Antes de la corrección, esas dos últimas
+  daban acceso al historial privado. Además, el chat probado en el navegador con dos usuarios a la vez (ver la bitácora del frontend).

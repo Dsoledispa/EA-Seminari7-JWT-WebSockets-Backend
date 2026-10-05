@@ -115,6 +115,7 @@ const swaggerDocument = swaggerJsdoc({
         tags: [
             { name: 'Health', description: 'Comprobar que la API responde' },
             { name: 'Auth', description: 'Registro, login y renovación del token' },
+            { name: 'Users', description: 'Usuarios, para elegir con quién hablar en el chat' },
             { name: 'Authors', description: 'Autores' },
             { name: 'Books', description: 'Libros' }
         ],

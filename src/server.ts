@@ -13,6 +13,8 @@ import authorRoutes from './routes/Author';
 import bookRoutes from './routes/Book';
 import swaggerUi from 'swagger-ui-express'; // permite mostrar Swagger en el navegador.
 import swaggerDocument from './config/swagger'; // importa el documento que hemos creado en swagger.ts
+import userRoutes from './routes/Users';
+import { StartChat } from './sockets/Chat';
 
 const router = express();
 
@@ -43,6 +45,8 @@ const StartServer = () => {
     // y despues RequireRole comprueba el rol (403 si no es admin)
     router.use('/authors', VerifyToken, RequireRole('admin'), authorRoutes);
     router.use('/books', VerifyToken, RequireRole('admin'), bookRoutes);
+    // La lista de usuarios es para el chat, así que cualquier usuario autenticado puede consultarla.
+    router.use('/users', VerifyToken, userRoutes);
 
     // La documentacion y el healthcheck son publicos
     router.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -71,5 +75,11 @@ const StartServer = () => {
 
     router.use(ErrorHandler);
 
-    http.createServer(router).listen(config.server.port, () => Logging.info(`Server is running on port ${config.server.port}`));
+    // Express y socket.io comparten el mismo servidor HTTP (y el mismo puerto)
+    const server = http.createServer(router);
+
+    /** Chat (socket.io) */
+    StartChat(server);
+
+    server.listen(config.server.port, () => Logging.info(`Server is running on port ${config.server.port}`));
 };
