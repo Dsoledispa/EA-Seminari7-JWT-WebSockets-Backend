@@ -37,6 +37,8 @@ export interface ServerToClientEvents {
     'chat:history': (messages: ChatMessage[]) => void;
     'chat:message': (message: ChatMessage) => void;
     'chat:error': (error: ChatError) => void;
+    // Lista de ids de los usuarios con el chat abierto; se envía a todos cada vez que alguien entra o sale
+    'users:online': (userIds: string[]) => void;
 }
 
 // Lo que el middleware SocketAuth guarda en cada conexión (socket.data).

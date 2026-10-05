@@ -13,6 +13,12 @@ const HISTORY_LIMIT = 50;
 // Longitud máxima de un mensaje (la misma que el maxlength del frontend y del modelo Message)
 const MAX_TEXT_LENGTH = 2000;
 
+// Usuarios conectados al chat: id del usuario -> cuántos sockets tiene abiertos.
+// Se cuentan los sockets porque un usuario puede tener el chat abierto en dos pestañas:
+// solo deja de estar conectado cuando cierra la última.
+// Vive en memoria: si el servidor se reinicia, se vuelve a llenar con las reconexiones.
+const onlineUsers = new Map<string, number>();
+
 // Comprueba que la sala tiene uno de los nombres del contrato y que este usuario puede entrar:
 //
 //   general                 la sala de todos
@@ -58,10 +64,17 @@ export const StartChat = (server: http.Server) => {
 
     io.use(VerifySocketToken);
 
+    // Envía a todos los clientes la lista de usuarios conectados
+    const emitOnlineUsers = () => io.emit('users:online', [...onlineUsers.keys()]);
+
     io.on('connection', (socket) => {
         // El middleware JWT ya comprobó la identidad antes de permitir esta conexión.
         const userId = socket.data.user.id;
         Logging.info(`Socket connected for user ${userId}`);
+
+        // Apuntamos que está conectado y avisamos a todos (también al que acaba de entrar)
+        onlineUsers.set(userId, (onlineUsers.get(userId) ?? 0) + 1);
+        emitOnlineUsers();
 
         // El cliente pide entrar a una sala, por ejemplo "general".
         socket.on('chat:join', async (payload: ChatJoinPayload) => {
@@ -140,6 +153,15 @@ export const StartChat = (server: http.Server) => {
         // Dejamos registrado cuándo se desconecta un usuario.
         socket.on('disconnect', () => {
             Logging.info(`Socket disconnected for user ${userId}`);
+
+            // Si era su último socket abierto, deja de estar conectado y avisamos a todos
+            const sockets = (onlineUsers.get(userId) ?? 1) - 1;
+            if (sockets > 0) {
+                onlineUsers.set(userId, sockets);
+            } else {
+                onlineUsers.delete(userId);
+                emitOnlineUsers();
+            }
         });
     });
 
