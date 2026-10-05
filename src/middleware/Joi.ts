@@ -69,9 +69,6 @@ export const Schemas = {
             // El email es obligatorio y tiene que tener un formato de email valido
             email: Joi.string().email().required().example('leguin@example.com'),
 
-            // La contraseña es obligatoria y debe tener como minimo 8 caracteres
-            password: Joi.string().min(8).required().example('seminari5'),
-
             // La fecha de nacimiento es opcional y debe ser una fecha
             birthDate: Joi.date(),
 
@@ -88,10 +85,7 @@ export const Schemas = {
             photoUrl: Joi.string().uri(),
 
             // Indica si el autor esta activo o no
-            active: Joi.boolean(),
-
-            // El rol solo puede ser author o admin
-            role: Joi.string().valid('author', 'admin')
+            active: Joi.boolean()
         }),
 
         // Esquema que se utiliza para actualizar un autor
@@ -99,7 +93,6 @@ export const Schemas = {
             // Estos campos son obligatorios tambien al actualizar
             name: Joi.string().required(),
             email: Joi.string().email().required(),
-            password: Joi.string().min(8).required(),
 
             // El resto de campos son opcionales
             birthDate: Joi.date(),
@@ -107,10 +100,7 @@ export const Schemas = {
             biography: Joi.string().max(1000),
             website: Joi.string().uri(),
             photoUrl: Joi.string().uri(),
-            active: Joi.boolean(),
-
-            // El rol solo puede tener uno de estos dos valores
-            role: Joi.string().valid('author', 'admin')
+            active: Joi.boolean()
         })
     },
 

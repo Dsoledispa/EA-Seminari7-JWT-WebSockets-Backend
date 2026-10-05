@@ -20,9 +20,7 @@ const storedFields = {
     updatedAt: { type: 'string', format: 'date-time' }
 };
 
-const { password: _password, ...authorFields } = authorInput.properties;
-
-const authorSchema = { type: 'object', properties: { ...storedFields, ...authorFields } };
+const authorSchema = { type: 'object', properties: { ...storedFields, ...authorInput.properties } };
 
 const bookSchema = {
     type: 'object',
@@ -44,7 +42,6 @@ const authorExample = {
     website: 'https://example.com/leguin',
     photoUrl: 'https://example.com/fotos/leguin.jpg',
     active: true,
-    role: 'author',
     createdAt: '2026-09-23T10:00:00.000Z',
     updatedAt: '2026-09-23T10:00:00.000Z'
 };

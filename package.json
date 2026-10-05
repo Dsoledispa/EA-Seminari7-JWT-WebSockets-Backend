@@ -13,6 +13,7 @@
         "start": "node build/server.js",
         "seed": "tsx src/seed.ts",
         "migrate-indexes": "tsx src/migrate-indexes.ts",
+        "migrate-authors": "tsx src/migrate-authors.ts",
         "lint": "oxlint src",
         "lint:fix": "oxlint src --fix"
     },
