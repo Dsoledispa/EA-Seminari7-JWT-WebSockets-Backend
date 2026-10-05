@@ -20,8 +20,8 @@ const MessageSchema: Schema = new Schema(
         // Identificador del usuario que escribió. "ref" indica que apunta al modelo User.
         user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
 
-        // Contenido escrito por el usuario.
-        text: { type: String, required: true, trim: true },
+        // Contenido escrito por el usuario. El chat rechaza antes los mensajes más largos.
+        text: { type: String, required: true, trim: true, maxlength: 2000 },
 
         // Fecha y hora de creación. Mongoose la establece automáticamente al guardar el mensaje.
         timestamp: { type: Date, default: Date.now }

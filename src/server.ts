@@ -13,39 +13,10 @@ import authorRoutes from './routes/Author';
 import bookRoutes from './routes/Book';
 import swaggerUi from 'swagger-ui-express'; // permite mostrar Swagger en el navegador.
 import swaggerDocument from './config/swagger'; // importa el documento que hemos creado en swagger.ts
-import { Server } from 'socket.io';
-import { VerifySocketToken } from './middleware/SocketAuth';
-import Message from './models/Message';
-import type { ChatJoinPayload, ChatMessagePayload } from './types/chat';
-const router = express();
 import userRoutes from './routes/Users';
+import { StartChat } from './sockets/Chat';
 
-// Comprueba que la sala tiene uno de los nombres del contrato y que este usuario puede entrar:
-//
-//   general                 la sala de todos
-//   group:<nombre>          una sala de grupo; entra quien conozca el nombre
-//   direct:<idA>:<idB>      chat directo entre dos usuarios, con los ids ordenados
-//                           (así los dos generan el mismo nombre). Solo entran esos dos usuarios.
-//
-// Sin esta comprobación, cualquiera podría escribir el nombre de un chat directo ajeno
-// (los ids salen en GET /users) y leer su historial.
-const canJoinRoom = (room: string, userId: string): boolean => {
-    if (room === 'general') {
-        return true;
-    }
-
-    if (room.startsWith('group:')) {
-        return room.length > 'group:'.length && room.length <= 100;
-    }
-
-    if (room.startsWith('direct:')) {
-        const ids = room.slice('direct:'.length).split(':');
-
-        return ids.length === 2 && ids[0] < ids[1] && ids.includes(userId);
-    }
-
-    return false;
-};
+const router = express();
 
 /** Connect to Mongo */
 mongoose
@@ -104,106 +75,11 @@ const StartServer = () => {
 
     router.use(ErrorHandler);
 
+    // Express y socket.io comparten el mismo servidor HTTP (y el mismo puerto)
     const server = http.createServer(router);
-const io = new Server(server, {
-    cors: {
-        origin: config.cors.origin,
-        methods: ['GET', 'POST']
-    }
-});
 
-io.use(VerifySocketToken);
+    /** Chat (socket.io) */
+    StartChat(server);
 
-io.on('connection', (socket) => {
-    // El middleware JWT ya comprobó la identidad antes de permitir esta conexión.
-    const userId = socket.data.user.id;
-    Logging.info(`Socket connected for user ${userId}`);
-
-    // El cliente pide entrar a una sala, por ejemplo "general".
-    socket.on('chat:join', async (payload: ChatJoinPayload) => {
-        // Los tipos de TypeScript no validan los datos que llegan por la red;
-        // comprobamos también que la sala realmente sea un texto.
-        if (!payload || typeof payload.room !== 'string' || payload.room.trim().length === 0) {
-            socket.emit('chat:error', { message: 'La sala indicada no es válida.' });
-            return;
-        }
-
-        const room = payload.room.trim();
-
-        if (!canJoinRoom(room, userId)) {
-            Logging.warning(`User ${userId} tried to join room ${room}`);
-            socket.emit('chat:error', { message: 'No puedes entrar en esta sala.' });
-            return;
-        }
-
-        try {
-            // Socket.IO se encarga de añadir esta conexión a la sala.
-            await socket.join(room);
-
-            // Buscamos los 50 mensajes más recientes y los ordenamos del más antiguo al más nuevo.
-            const history = await Message.find({ room })
-                .sort({ timestamp: -1 })
-                .limit(50)
-                .populate('user', 'name')
-                .lean();
-
-            // Devolvemos el historial solo a quien acaba de entrar, en orden cronológico.
-            socket.emit('chat:history', history.reverse());
-        } catch (error) {
-            // Registramos el fallo en el servidor y avisamos al cliente sin exponer detalles internos.
-            Logging.error(error);
-            socket.emit('chat:error', { message: 'No se pudo cargar el historial de la sala.' });
-        }
-    });
-
-        // El cliente envía el mensaje y la sala donde quiere publicarlo.
-    socket.on('chat:message', async (payload: ChatMessagePayload) => {
-        // Los tipos de TypeScript no comprueban los datos que llegan desde la red.
-        if (
-            !payload ||
-            typeof payload.room !== 'string' ||
-            typeof payload.text !== 'string' ||
-            payload.room.trim().length === 0 ||
-            payload.text.trim().length === 0
-        ) {
-            socket.emit('chat:error', { message: 'La sala y el texto del mensaje son obligatorios.' });
-            return;
-        }
-
-        const room = payload.room.trim();
-        const text = payload.text.trim();
-
-        // Solo se permite escribir en salas a las que este socket ya se unió.
-        if (!socket.rooms.has(room)) {
-            socket.emit('chat:error', { message: 'Debes entrar a la sala antes de enviar mensajes.' });
-            return;
-        }
-
-        try {
-            // El autor sale del JWT verificado, nunca de los datos enviados por el cliente.
-            const message = await Message.create({
-                room,
-                user: userId,
-                text
-            });
-
-            // Cargamos el nombre del autor para enviar datos parecidos a los del historial.
-            await message.populate('user', 'name');
-
-            // Se emite el mensaje ya guardado a todos los sockets conectados a esa sala.
-            io.to(room).emit('chat:message', message);
-        } catch (error) {
-            // El detalle queda en el log del servidor; al cliente solo le enviamos un aviso.
-            Logging.error(error);
-            socket.emit('chat:error', { message: 'No se pudo guardar el mensaje.' });
-        }
-    });
-
-    // Dejamos registrado cuándo se desconecta un usuario.
-    socket.on('disconnect', () => {
-        Logging.info(`Socket disconnected for user ${userId}`);
-    });
-});
-
-server.listen(config.server.port, () => Logging.info(`Server is running on port ${config.server.port}`));
+    server.listen(config.server.port, () => Logging.info(`Server is running on port ${config.server.port}`));
 };
