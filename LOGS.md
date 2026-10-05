@@ -33,7 +33,7 @@ Lo que backend y frontend tienen que cumplir igual. Si algo de aquí cambia, se 
   - Salas: `general`, `group:<nombre>` y `direct:<idA>:<idB>` (los dos ids ordenados; solo entran esos dos usuarios). Cualquier otro nombre se rechaza con `chat:error`.
   - Del cliente al servidor: `chat:join` con `{ room }` y `chat:message` con `{ room, text }` (de 1 a 2000 caracteres; hay que haber entrado antes en la sala).
   - Del servidor al cliente: `chat:history` (solo a quien entra: los 50 últimos mensajes de la sala, del más antiguo al más nuevo), `chat:message` (a toda la sala, también a quien lo
-    escribió) y `chat:error` con `{ message }`.
+    escribió), `chat:error` con `{ message }` y `users:online` (a todos, cada vez que alguien abre o cierra el chat: la lista de ids de los usuarios conectados).
   - Un mensaje es `{ _id, room, user: { _id, name }, text, timestamp }`.
   - `GET /users` (con sesión, cualquier rol) responde `{ users: [{ _id, name }] }`, ordenados por nombre, para elegir con quién hablar en el chat directo.
 
@@ -166,3 +166,11 @@ el servidor lo emite a los demás.
   la sala general, de grupo y directa que solo reciben los de la sala; historial guardado y en orden; autor sacado del token; `chat:error` sin haber entrado, con texto vacío o de más de
   2000 caracteres, con una sala fuera del contrato, con los ids de un directo sin ordenar y al intentar entrar o escribir en un directo ajeno. Antes de la corrección, esas dos últimas
   daban acceso al historial privado. Además, el chat probado en el navegador con dos usuarios a la vez (ver la bitácora del frontend).
+
+### 2026-10-05 · Usuarios conectados en el chat
+
+- Recomendación de los profesores: ver quién está activo. El servidor apunta en memoria los usuarios con el chat abierto (`Map` de id de usuario → número de sockets, para que
+  cerrar una de dos pestañas no lo desconecte) y emite a todos `users:online` con la lista de ids cada vez que alguien entra o sale. No se guarda en MongoDB: si el servidor se
+  reinicia, la lista se rehace con las reconexiones. "Conectado" significa "con el chat abierto", porque el socket solo vive en la página del chat.
+- Evento añadido a `ServerToClientEvents`, al Contrato de los dos LOGS.md y a la tabla de eventos del README.
+- Validación ejecutada: `npm run build` y `npm run lint` sin errores; prueba en el navegador con dos usuarios descrita en la bitácora del frontend.
