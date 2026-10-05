@@ -37,6 +37,7 @@ Lo que ya está instalado y funcionando:
 | [swagger-ui-express](https://github.com/scottie1984/swagger-ui-express) | 5.0 | Muestra la documentación de la API en `/api-docs` |
 | [swagger-jsdoc](https://github.com/Surnet/swagger-jsdoc) | 6.3 | Construye esa documentación leyendo los comentarios `@openapi` de las rutas |
 | [joi-to-swagger](https://github.com/Twipped/joi-to-swagger) | 6.2 | Convierte los esquemas de Joi en los esquemas de la documentación |
+| [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) | 9.0 | Firma y verifica los tokens JWT (`sign` y `verify`) |
 | [tsx](https://tsx.is/) | 4.23 | Ejecuta TypeScript sin compilar y reinicia la API al guardar (`npm run dev`) |
 | [Oxlint](https://oxc.rs/docs/guide/usage/linter) | 1.85 | Analiza el código de `src/` y detecta errores comunes |
 | [Prettier](https://prettier.io/) | extensión de VS Code | Da formato al código al guardar (reglas en `.prettierrc`) |
@@ -45,7 +46,6 @@ Lo que se añadirá durante el seminario (todavía **no** está instalado):
 
 | Tecnología | Para qué se usará |
 |---|---|
-| [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) | Firmar y verificar los tokens JWT (`sign` y `verify`) |
 | [socket.io](https://socket.io/) | Servidor de WebSockets del chat, enganchado al mismo servidor HTTP que Express |
 
 Las contraseñas no necesitan librería: se cifran con `scrypt`, que viene con Node (`node:crypto`).
@@ -85,6 +85,13 @@ cp .env.example .env
 | `MONGO_URL` | Dirección de tu MongoDB | `mongodb://127.0.0.1:27017/seminari7` |
 | `SERVER_PORT` | Puerto en el que escucha la API | `1337` |
 | `CORS_ORIGIN` | Desde qué dirección se puede llamar a la API desde un navegador | `*` (cualquiera) |
+| `JWT_SECRET` | Secreto con el que se firma el access token. **Obligatoria** | valor de clase en `.env.example` |
+| `JWT_REFRESH_SECRET` | Secreto con el que se firma el refresh token; distinto del anterior. **Obligatoria** | valor de clase en `.env.example` |
+| `JWT_EXPIRES_IN` | Cuánto dura el access token | `15m` (15 minutos) |
+| `JWT_REFRESH_EXPIRES_IN` | Cuánto dura el refresh token | `7d` (7 días) |
+
+Si falta `JWT_SECRET` o `JWT_REFRESH_SECRET`, la API no arranca y dice qué variable falta. Si ya tenías
+un `.env` de antes de la autenticación, copia esas cuatro líneas de `.env.example`.
 
 Cada seminario usa su propia base de datos (`seminari7`), así los datos del S5 o del S6 no se mezclan
 con los de este. Con una base de datos nueva no hace falta `npm run migrate-indexes`: los índices ya
@@ -92,8 +99,9 @@ se crean bien desde el principio.
 
 ## Llenar la base de datos (la primera vez)
 
-Si arrancas con la base de datos vacía, la API funciona pero no devuelve nada. Para tener datos con
-los que probar, hay 5 autores y 12 libros de ejemplo en `src/seed-data.ts`:
+Si arrancas con la base de datos vacía, la API funciona pero no devuelve nada y no hay ningún usuario
+con el que iniciar sesión. Para tener datos con los que probar, hay 2 usuarios, 12 autores y 12 libros
+de ejemplo en `src/seed-data.ts`:
 
 ```
 npm run seed
@@ -108,10 +116,26 @@ npm run seed -- --reset
 
 Siempre trabaja sobre la base de datos de tu `.env`.
 
-Todos los autores de ejemplo tienen la contraseña `seminari5`, y está escrita a la vista en
-`src/seed-data.ts`. Es un proyecto de clase: las contraseñas son públicas a propósito, para que
-cualquiera que clone el repositorio pueda entrar con cualquier usuario. En la base de datos sí se
-guardan cifradas, porque el modelo las cifra antes de guardarlas.
+Los usuarios de ejemplo son:
+
+| Email | Contraseña | Rol |
+|---|---|---|
+| `admin@example.com` | `seminari7` | `admin`: puede usar el backoffice (autores y libros) |
+| `user@example.com` | `seminari7` | `user`: puede iniciar sesión, pero no gestionar autores ni libros |
+
+Las contraseñas están escritas a la vista en `src/seed-data.ts`. Es un proyecto de clase: son públicas
+a propósito, para que cualquiera que clone el repositorio pueda entrar con cualquier usuario. En la
+base de datos sí se guardan cifradas, porque el modelo `User` las cifra antes de guardarlas.
+
+Si tu base de datos es de antes del Seminario 7, sus autores todavía tienen guardados los campos
+`password` y `role`, que ya no existen en el modelo. Quitar un campo del esquema no lo borra de los
+documentos, y la contraseña cifrada saldría en `GET /authors`. Para quitarlos sin perder tus datos:
+
+```
+npm run migrate-authors
+```
+
+(`npm run seed -- --reset` también lo soluciona, porque rehace todos los datos.)
 
 ## Ejecutar
 
@@ -187,52 +211,118 @@ src/
   server.ts        Punto de entrada: conecta con MongoDB, registra el middleware y las rutas, y arranca el servidor
   seed.ts          Script que llena la base de datos con los datos de ejemplo
   migrate-indexes.ts  Script de una sola vez: adapta los índices únicos al borrado lógico
-  seed-data.ts     Los datos de ejemplo: autores y libros
+  migrate-authors.ts  Script de una sola vez: quita password y role de los autores guardados antes del S7
+  seed-data.ts     Los datos de ejemplo: usuarios, autores y libros
   config/          Lee las variables de entorno y las reúne en un objeto config
   library/         Utilidades compartidas
     Logging.ts       Mensajes de consola con fecha y color (info, warning, error)
   routes/          El mapa de URLs: qué petición va a qué controller
-    Author.ts, Book.ts
+    Auth.ts, Author.ts, Book.ts
   middleware/      Lo que se ejecuta entre la ruta y el controller
+    VerifyToken.ts   Comprueba el token de la cabecera Authorization y deja el usuario en req.user (401)
+    RequireRole.ts   Deja pasar solo a un rol concreto (403)
     Joi.ts           Guardas: validan el body (422) y el id de la URL (400)
     Cors.ts          Cabeceras de CORS, configuradas con CORS_ORIGIN
     Logger.ts        Escribe en consola cada petición y su código de respuesta
-    ErrorHandler.ts  Convierte cualquier error en su código: 400, 404, 409, 422 o 500
+    ErrorHandler.ts  Convierte cualquier error en su código: 400, 401, 404, 409, 422 o 500
   controllers/     Leen la petición (req), llaman al service y eligen la respuesta (res)
-    Author.ts, Book.ts
+    Auth.ts, Author.ts, Book.ts
   services/        Leen y escriben en la base de datos a través de los models. No saben que existe HTTP
-    AuthorService.ts, BookService.ts
+    AuthService.ts, AuthorService.ts, BookService.ts
   models/          Esquemas de Mongoose: qué campos tiene cada documento y de qué tipo
-    Author.ts, Book.ts
+    User.ts, Author.ts, Book.ts
+  types/           Tipos compartidos: el contenido de los tokens y el campo req.user de Express
+  utils/           Funciones pequeñas sin dependencias de Express
+    password.ts      Cifra y comprueba contraseñas con scrypt
 ```
 
 Una petición recorre las capas siempre en el mismo orden:
 
 ```
-cliente -> server.ts (logger, JSON, CORS) -> routes/ -> middleware/ (validación) -> controllers/ -> services/ -> models/ -> MongoDB
+cliente -> server.ts (logger, JSON, CORS, token y rol) -> routes/ -> middleware/ (validación) -> controllers/ -> services/ -> models/ -> MongoDB
 ```
 
 Cada capa hace una sola cosa. Por eso los `services/` y los `models/` no importan Express:
 si un día se cambiara Express por otro framework, esas dos carpetas no habría que tocarlas.
 
+## Autenticación
+
+La API usa **JWT** (JSON Web Token). Un JWT es un texto con tres partes separadas por puntos:
+cabecera, contenido (payload) y firma. El servidor firma el token con un secreto que solo él conoce
+(`JWT_SECRET`), así que puede comprobar que un token lo ha creado él y que nadie lo ha modificado.
+El contenido **no está cifrado**: cualquiera puede leerlo (por ejemplo en https://jwt.io). Por eso
+solo lleva el id del usuario (`sub`), su rol (`role`) y cuándo caduca (`exp`), nunca la contraseña.
+
+El recorrido completo:
+
+1. `POST /auth/register` con `{ name, email, password }` crea el usuario (siempre con el rol `user`)
+   y responde 201 **sin token**. El frontend lleva entonces a la página de login.
+2. `POST /auth/login` con `{ email, password }` responde `{ token, refreshToken, user }`, o 401 si el
+   email o la contraseña no son correctos (el mismo mensaje en los dos casos, para no revelar qué
+   emails están registrados).
+3. En cada petición a una ruta protegida, el cliente envía el token en la cabecera:
+   `Authorization: Bearer <token>`.
+4. El middleware `VerifyToken` comprueba la firma y la caducidad, y deja el usuario en `req.user`.
+   Si falta el token, ha caducado o no es válido, responde 401.
+5. El middleware `RequireRole('admin')` comprueba el rol: si el usuario no es `admin`, responde 403.
+6. El access token dura poco (15 minutos). Cuando caduca, el cliente envía el refresh token a
+   `POST /auth/refresh` con `{ refreshToken }` y recibe `{ token }`, un access token nuevo, sin
+   volver a escribir la contraseña. El refresh token dura 7 días.
+
+401 y 403 no son lo mismo: 401 es "no sé quién eres" (no hay sesión válida) y 403 es "sé quién eres,
+pero no tienes permiso".
+
+Qué está protegido (en `server.ts`):
+
+| Rutas | Quién puede |
+|---|---|
+| `/auth/register`, `/auth/login`, `/auth/refresh` | Cualquiera (refresh necesita un refresh token válido) |
+| `/ping`, `/api-docs` | Cualquiera |
+| `/authors`, `/books` (todas sus operaciones) | Solo `admin` |
+
+Decisiones y límites, porque es un proyecto de clase:
+
+- El access token y el refresh token se firman con **secretos distintos**: un refresh token no sirve
+  como access token, ni al revés.
+- Los refresh tokens **no se guardan** en la base de datos. Es lo más sencillo, pero tiene un coste:
+  el servidor no puede invalidar un refresh token antes de que caduque, y cerrar sesión consiste en
+  que el frontend borre sus tokens.
+- Al renovar, el servidor vuelve a leer el usuario de la base de datos: si le han cambiado el rol, el
+  token nuevo ya lleva el rol actual; si se ha borrado, responde 401.
+
+Para probarlo con curl:
+
+```
+curl -X POST http://localhost:1337/auth/login -H "Content-Type: application/json" -d '{"email":"admin@example.com","password":"seminari7"}'
+curl http://localhost:1337/authors -H "Authorization: Bearer <el token de la respuesta anterior>"
+```
+
 ## Endpoints
+
+Todas las rutas salvo `/auth/*` y `/ping` necesitan la cabecera `Authorization: Bearer <token>`, y las
+de autores y libros, además, el rol `admin` (ver [Autenticación](#autenticación)).
 
 | Método | URL | Qué hace | Body |
 |---|---|---|---|
 | GET | `/ping` | Comprueba que la API está viva | |
-| POST | `/authors` | Crea un autor | `{ "name": "...", "email": "...", "password": "..." }` |
-| GET | `/authors` | Lista todos los autores | |
+| POST | `/auth/register` | Registra un usuario (rol `user`). No devuelve token | `{ "name": "...", "email": "...", "password": "..." }` |
+| POST | `/auth/login` | Inicia sesión: devuelve `{ token, refreshToken, user }` | `{ "email": "...", "password": "..." }` |
+| POST | `/auth/refresh` | Devuelve un access token nuevo: `{ token }` | `{ "refreshToken": "..." }` |
+| POST | `/authors` | Crea un autor | `{ "name": "...", "email": "..." }` |
+| GET | `/authors` | Lista los autores, paginados (`?page=&limit=&search=`) | |
 | GET | `/authors/:authorId` | Devuelve un autor | |
-| PUT | `/authors/:authorId` | Reemplaza los datos de un autor | `{ "name": "...", "email": "...", "password": "..." }` |
+| PUT | `/authors/:authorId` | Reemplaza los datos de un autor | `{ "name": "...", "email": "..." }` |
 | DELETE | `/authors/:authorId` | Borra un autor (borrado lógico) | |
 | POST | `/books` | Crea un libro | `{ "title": "...", "authors": ["<id de un autor>"], "isbn": "..." }` |
-| GET | `/books` | Lista todos los libros, con los datos de sus autores | |
+| GET | `/books` | Lista los libros, paginados (`?page=&limit=&search=`), con los datos de sus autores | |
 | GET | `/books/:bookId` | Devuelve un libro, con los datos de sus autores | |
 | PUT | `/books/:bookId` | Reemplaza los datos de un libro | `{ "title": "...", "authors": ["<id de un autor>"], "isbn": "..." }` |
 | DELETE | `/books/:bookId` | Borra un libro (borrado lógico) | |
 
 Un autor tiene además estos campos opcionales: `birthDate`, `nationality`, `biography`, `website`,
-`photoUrl`, `active` y `role`. La contraseña nunca se devuelve en las respuestas.
+`photoUrl` y `active`. Desde el Seminario 7 un autor no tiene contraseña ni rol: es un dato del
+backoffice, como un libro. Quien inicia sesión es un usuario (`User`), y su contraseña nunca se
+devuelve en las respuestas.
 
 Un libro tiene además: `edition`, `publisher`, `publishedYear`, `pages`, `language` (`es`, `ca` o `en`),
 `tags` (`ciencia-ficcion`, `fantasia`, `novela`, `ensayo`, `poesia`, `historia`), `price` y `description`.
@@ -241,12 +331,13 @@ Un libro puede tener más de un autor, y necesita al menos uno.
 Ejemplo con curl (también sirve Postman o Thunder Client):
 
 ```
-curl -X POST http://localhost:1337/authors -H "Content-Type: application/json" -d '{"name":"Ana"}'
+curl -X POST http://localhost:1337/authors -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"name":"Ana","email":"ana@example.com"}'
 ```
 
 Códigos de respuesta: 201 al crear, 200 al leer o modificar, 204 al borrar, 400 si el id de la URL
-no tiene forma de id de MongoDB, 404 si el id no existe, 409 si el email o el ISBN ya existen,
-422 si el body no es válido y 500 si falla algo en el servidor.
+no tiene forma de id de MongoDB, 401 si falta el token o no es válido, 403 si el usuario no tiene el
+rol necesario, 404 si el id no existe, 409 si el email o el ISBN ya existen, 422 si el body no es
+válido y 500 si falla algo en el servidor.
 
 ## Soft delete
 
@@ -285,7 +376,14 @@ Los esquemas del body no se escriben a mano: `joi-to-swagger` los genera a parti
 esquemas de Joi que validan las peticiones, así que la documentación no puede quedarse desfasada
 cuando se añade o se quita un campo.
 
-Las piezas comunes (datos generales, esquemas y respuestas de error) están en `src/config/swagger.ts`.
+Las piezas comunes (datos generales, esquemas, respuestas de error y el esquema de seguridad
+`bearerAuth`) están en `src/config/swagger.ts`. En `src/routes/Auth.ts` la documentación va debajo
+del código, para que el router se lea de un vistazo.
+
+Para probar las rutas protegidas desde Swagger: ejecuta `POST /auth/login`, copia el `token` de la
+respuesta, pulsa el botón **Authorize** de arriba a la derecha y pégalo (solo el token, sin la palabra
+`Bearer`). A partir de ahí Swagger envía la cabecera en todas las peticiones. Las rutas con candado son
+las que lo necesitan.
 
 ## Cómo contribuir
 

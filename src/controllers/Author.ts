@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import AuthorService from '../services/AuthorService';
+import type { PaginationQuery } from '../middleware/Joi';
 
 // Función para crear un autor nuevo
 // Cogemos los datos que nos llegan en el body y se los pasamos al servicio
@@ -41,13 +42,14 @@ const readAuthor = async (req: Request<{ authorId: string }>, res: Response, nex
 };
 
 // Función para obtener todos los autores
-const readAll = async (req: Request, res: Response, next: NextFunction) => {
+const readAll = async (req: Request, res: Response<unknown, { query: PaginationQuery }>, next: NextFunction) => {
     try {
-        // Pedimos al servicio la lista completa de autores
-        const authors = await AuthorService.getAllAuthors();
+        // Pedimos al servicio la pagina de autores y el total de autores no borrados
+        const { page, limit, search } = res.locals.query;
+        const result = await AuthorService.getAllAuthors(page, limit, search);
 
-        // Devolvemos la lista con un codigo 200
-        res.status(200).json({ authors });
+        // Devolvemos los autores junto con los datos de paginacion
+        res.status(200).json(result);
     } catch (error) {
         // Si hay algun error lo pasamos al siguiente middleware
         next(error);

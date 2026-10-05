@@ -1,69 +1,119 @@
 import { IAuthor } from './models/Author';
 import { IBook } from './models/Book';
+import { IUser } from './models/User';
 
 // Datos de ejemplo para llenar la base de datos.
 // Los correos, las webs, los ISBN y los precios son inventados.
-// Las contraseñas están sin cifrar: cifrarlas es la tarea del hook pre-save (ver CONTRIBUTING).
+
+// Usuarios para iniciar sesión en la aplicación: uno de cada rol.
+// Las contraseñas están sin cifrar y son públicas a propósito (ver el README):
+// el hook pre-save del modelo User las cifra al guardarlas.
+export const usersSeed: IUser[] = [
+    {
+        name: 'Admin',
+        email: 'admin@example.com',
+        password: 'seminari7',
+        role: 'admin'
+    },
+    {
+        name: 'Usuario',
+        email: 'user@example.com',
+        password: 'seminari7',
+        role: 'user'
+    }
+];
 
 export const authorsSeed: IAuthor[] = [
     {
         name: 'Miguel de Cervantes',
         email: 'cervantes@example.com',
-        password: 'seminari5',
         birthDate: new Date('1547-09-29'),
         nationality: 'España',
         biography: 'Autor de El Quijote, la novela más conocida de la literatura española.',
         website: 'https://example.com/cervantes',
         photoUrl: 'https://example.com/fotos/cervantes.jpg',
-        role: 'author',
         deleted: false
     },
     {
         name: 'Jorge Luis Borges',
         email: 'borges@example.com',
-        password: 'seminari5',
         birthDate: new Date('1899-08-24'),
         nationality: 'Argentina',
         biography: 'Escritor de cuentos y ensayos sobre laberintos, espejos y bibliotecas.',
         website: 'https://example.com/borges',
         photoUrl: 'https://example.com/fotos/borges.jpg',
-        role: 'author',
         deleted: false
     },
     {
         name: 'Mercè Rodoreda',
         email: 'rodoreda@example.com',
-        password: 'seminari5',
         birthDate: new Date('1908-10-10'),
         nationality: 'España',
         biography: 'Una de las voces más importantes de la narrativa en catalán del siglo XX.',
         website: 'https://example.com/rodoreda',
         photoUrl: 'https://example.com/fotos/rodoreda.jpg',
-        role: 'author',
         deleted: false
     },
     {
         name: 'Ursula K. Le Guin',
         email: 'leguin@example.com',
-        password: 'seminari5',
         birthDate: new Date('1929-10-21'),
         nationality: 'Estados Unidos',
         biography: 'Escritora de ciencia ficción y fantasía conocida por Terramar.',
         website: 'https://example.com/leguin',
         photoUrl: 'https://example.com/fotos/leguin.jpg',
-        role: 'author',
         deleted: false
     },
     {
         name: 'Isaac Asimov',
         email: 'asimov@example.com',
-        password: 'seminari5',
         birthDate: new Date('1920-01-02'),
         nationality: 'Estados Unidos',
         biography: 'Autor de la saga de la Fundación y de las tres leyes de la robótica.',
         website: 'https://example.com/asimov',
         photoUrl: 'https://example.com/fotos/asimov.jpg',
-        role: 'admin',
+        deleted: false
+    },
+    {
+        name: 'Mary Shelley',
+        email: 'shelley@example.com',
+        nationality: 'Reino Unido',
+        deleted: false
+    },
+    {
+        name: 'Jane Austen',
+        email: 'austen@example.com',
+        nationality: 'Reino Unido',
+        deleted: false
+    },
+    {
+        name: 'Gabriel García Márquez',
+        email: 'marquez@example.com',
+        nationality: 'Colombia',
+        deleted: false
+    },
+    {
+        name: 'Julio Cortázar',
+        email: 'cortazar@example.com',
+        nationality: 'Argentina',
+        deleted: false
+    },
+    {
+        name: 'Toni Morrison',
+        email: 'morrison@example.com',
+        nationality: 'Estados Unidos',
+        deleted: false
+    },
+    {
+        name: 'George Orwell',
+        email: 'orwell@example.com',
+        nationality: 'Reino Unido',
+        deleted: false
+    },
+    {
+        name: 'Octavia E. Butler',
+        email: 'butler@example.com',
+        nationality: 'Estados Unidos',
         deleted: false
     }
 ];

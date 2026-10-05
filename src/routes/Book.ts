@@ -2,7 +2,7 @@ import express from 'express';
 
 import controller from '../controllers/Book';
 
-import { Schemas, ValidateId, ValidateJoi } from '../middleware/Joi';
+import { Schemas, ValidateId, ValidateJoi, ValidatePagination } from '../middleware/Joi';
 
 // Creamos el router que se encargara de las rutas relacionadas con los libros
 const router = express.Router();
@@ -25,6 +25,8 @@ const router = express.Router();
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Book' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       409: { $ref: '#/components/responses/Conflict' }
  *       422: { $ref: '#/components/responses/Unprocessable' }
  *       500: { $ref: '#/components/responses/ServerError' }
@@ -50,6 +52,8 @@ router.post('/', ValidateJoi(Schemas.book.create), controller.createBook);
  *     responses:
  *       200: { $ref: '#/components/responses/BookOne' }
  *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
  */
 
@@ -63,13 +67,29 @@ router.get('/:bookId', ValidateId('bookId'), controller.readBook);
  *   get:
  *     tags: [Books]
  *     summary: Lista todos los libros, con los datos de sus autores
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *         description: Número de página
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 5 }
+ *         description: Número de libros por página
+ *       - in: query
+ *         name: search
+ *         schema: { type: string, maxLength: 100 }
+ *         description: Buscar por título, ISBN o descripción
  *     responses:
  *       200: { $ref: '#/components/responses/BookList' }
+ *       400: { $ref: '#/components/responses/InvalidPagination' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       500: { $ref: '#/components/responses/ServerError' }
  */
 
 // Ruta para obtener todos los libros
-router.get('/', controller.readAll);
+router.get('/', ValidatePagination, controller.readAll);
 
 /**
  * @openapi
@@ -91,6 +111,8 @@ router.get('/', controller.readAll);
  *     responses:
  *       200: { $ref: '#/components/responses/BookOne' }
  *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
  *       409: { $ref: '#/components/responses/Conflict' }
  *       422: { $ref: '#/components/responses/Unprocessable' }
@@ -118,6 +140,8 @@ router.put('/:bookId', ValidateId('bookId'), ValidateJoi(Schemas.book.update), c
  *     responses:
  *       204: { description: Libro marcado como borrado, sin contenido }
  *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
  */
 

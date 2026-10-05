@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import BookService from '../services/BookService';
+import type { PaginationQuery } from '../middleware/Joi';
 
 // Función para crear un libro nuevo
 // Cogemos los datos que llegan en el body y los pasamos al servicio
@@ -40,13 +41,14 @@ const readBook = async (req: Request<{ bookId: string }>, res: Response, next: N
 };
 
 // Función para obtener todos los libros
-const readAll = async (req: Request, res: Response, next: NextFunction) => {
+const readAll = async (req: Request, res: Response<unknown, { query: PaginationQuery }>, next: NextFunction) => {
     try {
-        // Pedimos al servicio la lista completa de libros
-        const books = await BookService.getAllBooks();
+        // Pedimos al servicio la pagina de libros y el total de libros no borrados
+        const { page, limit, search } = res.locals.query;
+        const result = await BookService.getAllBooks(page, limit, search);
 
-        // Devolvemos los libros con un codigo 200
-        res.status(200).json({ books });
+        // Devolvemos los libros junto con los datos de paginacion
+        res.status(200).json(result);
     } catch (error) {
         // Si ocurre algun error lo pasamos al siguiente middleware
         next(error);
