@@ -314,6 +314,7 @@ con `on`.
 | `chat:message` | Cliente | `{ room, text }` | El servidor lo guarda en MongoDB y lo reenvía a la sala |
 | `chat:message` | Servidor, a toda la sala | Un mensaje | Le llega a todos los que están en la sala, también a quien lo escribió |
 | `chat:error` | Servidor, a un cliente | `{ message }` | Algo no se ha podido hacer (sala no permitida, mensaje vacío...) |
+| `users:online` | Servidor, a todos | Lista de ids | Quién tiene el chat abierto. Se envía cada vez que alguien entra o sale |
 
 Un mensaje del servidor tiene esta forma: `{ _id, room, user: { _id, name }, text, timestamp }`.
 
@@ -333,6 +334,9 @@ Hay tres niveles de chat, según el nombre de la sala:
 | General | `general` | Cualquier usuario con sesión |
 | Grupo | `group:<nombre>`, por ejemplo `group:seminario-7` | Quien conozca el nombre |
 | Directo | `direct:<idA>:<idB>`, con los dos ids ordenados | Solo esos dos usuarios |
+
+Para saber quién está activo, el servidor lleva en memoria los usuarios con el chat abierto (cuenta sus sockets, por si
+tienen varias pestañas) y avisa a todos con `users:online` cada vez que alguien entra o sale. No se guarda en MongoDB.
 
 Los ids se ordenan para que los dos usuarios generen el mismo nombre de sala sin ponerse de acuerdo.
 `GET /users` da la lista de usuarios (solo id y nombre) para elegir con quién hablar. El servidor
