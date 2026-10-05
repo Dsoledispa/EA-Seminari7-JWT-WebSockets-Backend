@@ -1,4 +1,5 @@
 import { ErrorRequestHandler } from 'express';
+import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 
 import Logging from '../library/Logging';
 
@@ -14,6 +15,11 @@ export const ErrorHandler: ErrorRequestHandler = (error: DatabaseError, req, res
 
         Logging.warning(`Not found: ${req.method} ${req.originalUrl}`);
 
+    } else if (error instanceof JsonWebTokenError) {
+
+        // Un token caducado o falso tampoco es un fallo del servidor: solo un aviso
+        Logging.warning(`Token rechazado (${error.message}): ${req.method} ${req.originalUrl}`);
+
     } else {
 
         // Para el resto de errores los guardamos como errores normales
@@ -25,6 +31,20 @@ export const ErrorHandler: ErrorRequestHandler = (error: DatabaseError, req, res
     if (res.headersSent) {
 
         return next(error);
+    }
+
+    // Errores de la libreria jsonwebtoken: el token ha caducado o no es valido.
+    // En los dos casos el usuario no esta identificado, asi que respondemos 401.
+    // Damos mensajes distintos para que el frontend sepa cuando le basta con renovar el token.
+    // Va antes que el resto porque TokenExpiredError es un tipo de JsonWebTokenError.
+    if (error instanceof TokenExpiredError) {
+
+        return res.status(401).json({ message: 'El token ha caducado' });
+    }
+
+    if (error instanceof JsonWebTokenError) {
+
+        return res.status(401).json({ message: 'Token no válido' });
     }
 
     // El codigo 11000 indica que se ha intentado introducir un valor duplicado

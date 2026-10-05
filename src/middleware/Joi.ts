@@ -4,6 +4,7 @@ import { NextFunction, Request, Response } from 'express';
 
 import { IAuthor } from '../models/Author';
 import { BOOK_LANGUAGES, BOOK_TAGS, IBook } from '../models/Book';
+import { IUser } from '../models/User';
 
 export interface PaginationQuery {
     page: number;
@@ -58,6 +59,30 @@ export const Schemas = {
         limit: Joi.number().integer().min(1).max(100).default(5),
         search: Joi.string().trim().max(100).allow('').default('')
     }),
+
+    // Validaciones de las rutas de autenticacion
+    auth: {
+        // Registro: nombre, email y contraseña.
+        // No se acepta role: si alguien lo envia, Joi lo rechaza porque no esta en el esquema.
+        // Asi nadie puede registrarse a si mismo como admin; todo usuario nuevo es user.
+        register: Joi.object<IUser>({
+            name: Joi.string().trim().required().example('Ana'),
+            email: Joi.string().email().required().example('ana@example.com'),
+            password: Joi.string().min(8).required().example('seminari7')
+        }),
+
+        // Login: el email y la contraseña. Aqui no se comprueba la longitud de la contraseña:
+        // si es incorrecta, el servidor responde 401 igualmente
+        login: Joi.object<IUser>({
+            email: Joi.string().email().required().example('admin@example.com'),
+            password: Joi.string().required().example('seminari7')
+        }),
+
+        // Refresh: el refresh token que se recibio al hacer login
+        refresh: Joi.object<{ refreshToken: string }>({
+            refreshToken: Joi.string().required()
+        })
+    },
 
     // Validaciones relacionadas con los autores
     author: {

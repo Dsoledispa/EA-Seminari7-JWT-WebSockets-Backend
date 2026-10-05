@@ -6,6 +6,7 @@ import { Cors } from './middleware/Cors';
 import Logging from './library/Logging';
 import Logger from './middleware/Logger';
 import ErrorHandler from './middleware/ErrorHandler';
+import authRoutes from './routes/Auth';
 import authorRoutes from './routes/Author';
 import bookRoutes from './routes/Book';
 import swaggerUi from 'swagger-ui-express'; // permite mostrar Swagger en el navegador.
@@ -33,6 +34,9 @@ const StartServer = () => {
     router.use(Cors);
 
     /** Routes */
+    // Publicas: registro, login y refresh
+    router.use('/auth', authRoutes);
+
     router.use('/authors', authorRoutes);
     router.use('/books', bookRoutes);
     router.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
