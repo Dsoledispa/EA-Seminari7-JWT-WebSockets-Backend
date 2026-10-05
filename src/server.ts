@@ -54,6 +54,7 @@ const StartServer = () => {
      *   get:
      *     tags: [Health]
      *     summary: Comprueba que la API está viva
+     *     security: []
      *     responses:
      *       200:
      *         description: La API responde
