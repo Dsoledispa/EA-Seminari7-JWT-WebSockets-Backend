@@ -20,6 +20,33 @@ import type { ChatJoinPayload, ChatMessagePayload } from './types/chat';
 const router = express();
 import userRoutes from './routes/Users';
 
+// Comprueba que la sala tiene uno de los nombres del contrato y que este usuario puede entrar:
+//
+//   general                 la sala de todos
+//   group:<nombre>          una sala de grupo; entra quien conozca el nombre
+//   direct:<idA>:<idB>      chat directo entre dos usuarios, con los ids ordenados
+//                           (así los dos generan el mismo nombre). Solo entran esos dos usuarios.
+//
+// Sin esta comprobación, cualquiera podría escribir el nombre de un chat directo ajeno
+// (los ids salen en GET /users) y leer su historial.
+const canJoinRoom = (room: string, userId: string): boolean => {
+    if (room === 'general') {
+        return true;
+    }
+
+    if (room.startsWith('group:')) {
+        return room.length > 'group:'.length && room.length <= 100;
+    }
+
+    if (room.startsWith('direct:')) {
+        const ids = room.slice('direct:'.length).split(':');
+
+        return ids.length === 2 && ids[0] < ids[1] && ids.includes(userId);
+    }
+
+    return false;
+};
+
 /** Connect to Mongo */
 mongoose
     .connect(config.mongo.url, { retryWrites: true, w: 'majority' })
@@ -102,6 +129,12 @@ io.on('connection', (socket) => {
         }
 
         const room = payload.room.trim();
+
+        if (!canJoinRoom(room, userId)) {
+            Logging.warning(`User ${userId} tried to join room ${room}`);
+            socket.emit('chat:error', { message: 'No puedes entrar en esta sala.' });
+            return;
+        }
 
         try {
             // Socket.IO se encarga de añadir esta conexión a la sala.
