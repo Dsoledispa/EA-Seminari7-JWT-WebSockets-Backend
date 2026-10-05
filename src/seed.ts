@@ -3,12 +3,13 @@ import { config } from './config/config';
 import Logging from './library/Logging';
 import Author from './models/Author';
 import Book from './models/Book';
-import { authorsSeed, booksSeed } from './seed-data';
+import User from './models/User';
+import { authorsSeed, booksSeed, usersSeed } from './seed-data';
 
 // Llena la base de datos con los datos de ejemplo de seed-data.ts.
 //
 //   npm run seed             inserta los datos solo si la base de datos está vacía
-//   npm run seed -- --reset  borra los autores y los libros y vuelve a insertarlos
+//   npm run seed -- --reset  borra los usuarios, los autores y los libros y vuelve a insertarlos
 //
 // Siempre trabaja sobre la base de datos del .env (MONGO_URL).
 
@@ -22,20 +23,25 @@ const seed = async () => {
         // Ojo: deleteMany({}) es un borrado fisico real y a proposito.
         // El reset del seed es el unico punto que hace borrado duro: asi tambien
         // se limpian los documentos que se habian borrado logicamente (soft delete).
+        const users = await User.deleteMany({});
         const authors = await Author.deleteMany({});
         const books = await Book.deleteMany({});
-        Logging.warning(`Borrados ${authors.deletedCount} autores y ${books.deletedCount} libros`);
+        Logging.warning(`Borrados ${users.deletedCount} usuarios, ${authors.deletedCount} autores y ${books.deletedCount} libros`);
     }
 
+    const usersInDb = await User.countDocuments();
     const authorsInDb = await Author.countDocuments();
     const booksInDb = await Book.countDocuments();
 
-    if (authorsInDb > 0 || booksInDb > 0) {
+    if (usersInDb > 0 || authorsInDb > 0 || booksInDb > 0) {
         Logging.warning('La base de datos ya tiene datos. Para rehacerla: npm run seed -- --reset');
         return;
     }
 
-    // create() dispara los hooks del modelo: la contrasena se guarda cifrada
+    // create() dispara los hooks del modelo: la contrasena del usuario se guarda cifrada
+    const createdUsers = await User.create(usersSeed);
+    Logging.info(`Usuarios creados: ${createdUsers.length}`);
+
     const createdAuthors = await Author.create(authorsSeed);
     Logging.info(`Autores creados: ${createdAuthors.length}`);
 

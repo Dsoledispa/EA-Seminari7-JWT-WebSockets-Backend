@@ -24,6 +24,8 @@ const router = express.Router();
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Author' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       409: { $ref: '#/components/responses/Conflict' }
  *       422: { $ref: '#/components/responses/Unprocessable' }
  *       500: { $ref: '#/components/responses/ServerError' }
@@ -49,6 +51,8 @@ router.post('/', ValidateJoi(Schemas.author.create), controller.createAuthor);
  *     responses:
  *       200: { $ref: '#/components/responses/AuthorOne' }
  *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
  */
 
@@ -78,6 +82,8 @@ router.get('/:authorId', ValidateId('authorId'), controller.readAuthor);
  *     responses:
  *       200: { $ref: '#/components/responses/AuthorList' }
  *       400: { $ref: '#/components/responses/InvalidPagination' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       500: { $ref: '#/components/responses/ServerError' }
  */
 
@@ -104,6 +110,8 @@ router.get('/', ValidatePagination, controller.readAll);
  *     responses:
  *       200: { $ref: '#/components/responses/AuthorOne' }
  *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
  *       409: { $ref: '#/components/responses/Conflict' }
  *       422: { $ref: '#/components/responses/Unprocessable' }
@@ -131,6 +139,8 @@ router.put('/:authorId', ValidateId('authorId'), ValidateJoi(Schemas.author.upda
  *     responses:
  *       204: { description: Autor marcado como borrado, sin contenido }
  *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
  */
 

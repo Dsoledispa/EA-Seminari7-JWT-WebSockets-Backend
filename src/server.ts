@@ -6,6 +6,9 @@ import { Cors } from './middleware/Cors';
 import Logging from './library/Logging';
 import Logger from './middleware/Logger';
 import ErrorHandler from './middleware/ErrorHandler';
+import { VerifyToken } from './middleware/VerifyToken';
+import { RequireRole } from './middleware/RequireRole';
+import authRoutes from './routes/Auth';
 import authorRoutes from './routes/Author';
 import bookRoutes from './routes/Book';
 import swaggerUi from 'swagger-ui-express'; // permite mostrar Swagger en el navegador.
@@ -33,8 +36,15 @@ const StartServer = () => {
     router.use(Cors);
 
     /** Routes */
-    router.use('/authors', authorRoutes);
-    router.use('/books', bookRoutes);
+    // Publicas: registro, login y refresh
+    router.use('/auth', authRoutes);
+
+    // Protegidas: primero VerifyToken comprueba el token (401 si falta o no vale)
+    // y despues RequireRole comprueba el rol (403 si no es admin)
+    router.use('/authors', VerifyToken, RequireRole('admin'), authorRoutes);
+    router.use('/books', VerifyToken, RequireRole('admin'), bookRoutes);
+
+    // La documentacion y el healthcheck son publicos
     router.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
     /** Healthcheck */
@@ -44,6 +54,7 @@ const StartServer = () => {
      *   get:
      *     tags: [Health]
      *     summary: Comprueba que la API está viva
+     *     security: []
      *     responses:
      *       200:
      *         description: La API responde

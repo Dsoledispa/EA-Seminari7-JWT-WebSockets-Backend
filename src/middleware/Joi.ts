@@ -4,6 +4,7 @@ import { NextFunction, Request, Response } from 'express';
 
 import { IAuthor } from '../models/Author';
 import { BOOK_LANGUAGES, BOOK_TAGS, IBook } from '../models/Book';
+import { IUser } from '../models/User';
 
 export interface PaginationQuery {
     page: number;
@@ -59,6 +60,30 @@ export const Schemas = {
         search: Joi.string().trim().max(100).allow('').default('')
     }),
 
+    // Validaciones de las rutas de autenticacion
+    auth: {
+        // Registro: nombre, email y contraseña.
+        // No se acepta role: si alguien lo envia, Joi lo rechaza porque no esta en el esquema.
+        // Asi nadie puede registrarse a si mismo como admin; todo usuario nuevo es user.
+        register: Joi.object<IUser>({
+            name: Joi.string().trim().required().example('Ana'),
+            email: Joi.string().email().required().example('ana@example.com'),
+            password: Joi.string().min(8).required().example('seminari7')
+        }),
+
+        // Login: el email y la contraseña. Aqui no se comprueba la longitud de la contraseña:
+        // si es incorrecta, el servidor responde 401 igualmente
+        login: Joi.object<IUser>({
+            email: Joi.string().email().required().example('admin@example.com'),
+            password: Joi.string().required().example('seminari7')
+        }),
+
+        // Refresh: el refresh token que se recibio al hacer login
+        refresh: Joi.object<{ refreshToken: string }>({
+            refreshToken: Joi.string().required()
+        })
+    },
+
     // Validaciones relacionadas con los autores
     author: {
         // Esquema que se utiliza cuando queremos crear un autor
@@ -68,9 +93,6 @@ export const Schemas = {
 
             // El email es obligatorio y tiene que tener un formato de email valido
             email: Joi.string().email().required().example('leguin@example.com'),
-
-            // La contraseña es obligatoria y debe tener como minimo 8 caracteres
-            password: Joi.string().min(8).required().example('seminari5'),
 
             // La fecha de nacimiento es opcional y debe ser una fecha
             birthDate: Joi.date(),
@@ -88,10 +110,7 @@ export const Schemas = {
             photoUrl: Joi.string().uri(),
 
             // Indica si el autor esta activo o no
-            active: Joi.boolean(),
-
-            // El rol solo puede ser author o admin
-            role: Joi.string().valid('author', 'admin')
+            active: Joi.boolean()
         }),
 
         // Esquema que se utiliza para actualizar un autor
@@ -99,7 +118,6 @@ export const Schemas = {
             // Estos campos son obligatorios tambien al actualizar
             name: Joi.string().required(),
             email: Joi.string().email().required(),
-            password: Joi.string().min(8).required(),
 
             // El resto de campos son opcionales
             birthDate: Joi.date(),
@@ -107,10 +125,7 @@ export const Schemas = {
             biography: Joi.string().max(1000),
             website: Joi.string().uri(),
             photoUrl: Joi.string().uri(),
-            active: Joi.boolean(),
-
-            // El rol solo puede tener uno de estos dos valores
-            role: Joi.string().valid('author', 'admin')
+            active: Joi.boolean()
         })
     },
 
