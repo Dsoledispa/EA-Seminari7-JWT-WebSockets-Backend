@@ -3,9 +3,15 @@ import express from 'express';
 import controller from '../controllers/Author';
 
 import { Schemas, ValidateId, ValidateJoi, ValidatePagination } from '../middleware/Joi';
+import { VerifyToken } from '../middleware/VerifyToken';
+import { RequireRole } from '../middleware/RequireRole';
 
 // Creamos el router que se encargara de las rutas relacionadas con los autores
 const router = express.Router();
+
+// Todas las rutas de este router son del backoffice: cada una pasa primero por
+// VerifyToken (401 si no hay un token valido) y despues por RequireRole('admin')
+// (403 si el usuario no es admin). Solo entonces se valida la peticion y llega al controller.
 
 /**
  * @openapi
@@ -34,7 +40,7 @@ const router = express.Router();
 // Ruta para crear un autor nuevo
 // Primero comprobamos que los datos cumplen el esquema de Joi
 // Si son correctos llamamos a la funcion createAuthor del controlador
-router.post('/', ValidateJoi(Schemas.author.create), controller.createAuthor);
+router.post('/', VerifyToken, RequireRole('admin'), ValidateJoi(Schemas.author.create), controller.createAuthor);
 
 /**
  * @openapi
@@ -58,7 +64,7 @@ router.post('/', ValidateJoi(Schemas.author.create), controller.createAuthor);
 
 // Ruta para buscar un autor por su ID
 // Antes de llamar al controlador comprobamos que el ID tiene el formato correcto
-router.get('/:authorId', ValidateId('authorId'), controller.readAuthor);
+router.get('/:authorId', VerifyToken, RequireRole('admin'), ValidateId('authorId'), controller.readAuthor);
 
 /**
  * @openapi
@@ -88,7 +94,7 @@ router.get('/:authorId', ValidateId('authorId'), controller.readAuthor);
  */
 
 // Ruta para obtener todos los autores
-router.get('/', ValidatePagination, controller.readAll);
+router.get('/', VerifyToken, RequireRole('admin'), ValidatePagination, controller.readAll);
 
 /**
  * @openapi
@@ -119,7 +125,7 @@ router.get('/', ValidatePagination, controller.readAll);
 
 // Ruta para actualizar un autor
 // Primero comprobamos que el ID sea correcto y despues validamos los datos recibidos
-router.put('/:authorId', ValidateId('authorId'), ValidateJoi(Schemas.author.update), controller.updateAuthor);
+router.put('/:authorId', VerifyToken, RequireRole('admin'), ValidateId('authorId'), ValidateJoi(Schemas.author.update), controller.updateAuthor);
 
 /**
  * @openapi
@@ -146,7 +152,7 @@ router.put('/:authorId', ValidateId('authorId'), ValidateJoi(Schemas.author.upda
 
 // Ruta para eliminar un autor por su ID
 // Comprobamos primero que el ID tenga un formato valido
-router.delete('/:authorId', ValidateId('authorId'), controller.deleteAuthor);
+router.delete('/:authorId', VerifyToken, RequireRole('admin'), ValidateId('authorId'), controller.deleteAuthor);
 
 // Exportamos el router para poder utilizar estas rutas en la aplicacion
 export = router;

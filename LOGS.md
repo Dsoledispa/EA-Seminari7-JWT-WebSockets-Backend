@@ -36,6 +36,7 @@ Lo que backend y frontend tienen que cumplir igual. Si algo de aquí cambia, se 
     escribió), `chat:error` con `{ message }` y `users:online` (a todos, cada vez que alguien abre o cierra el chat: la lista de ids de los usuarios conectados).
   - Un mensaje es `{ _id, room, user: { _id, name }, text, timestamp }`.
   - `GET /users` (con sesión, cualquier rol) responde `{ users: [{ _id, name }] }`, ordenados por nombre, para elegir con quién hablar en el chat directo.
+- **Usuario con sesión**: `GET /users/me` (con sesión, cualquier rol) responde `{ user: { _id, name, email, role } }`, a partir del token (`req.user`).
 
 ## Tareas
 
@@ -174,3 +175,19 @@ el servidor lo emite a los demás.
   reinicia, la lista se rehace con las reconexiones. "Conectado" significa "con el chat abierto", porque el socket solo vive en la página del chat.
 - Evento añadido a `ServerToClientEvents`, al Contrato de los dos LOGS.md y a la tabla de eventos del README.
 - Validación ejecutada: `npm run build` y `npm run lint` sin errores; prueba en el navegador con dos usuarios descrita en la bitácora del frontend.
+
+### 2026-10-10 · Rutas protegidas en cada router, interfaces en models/ y GET /users/me
+
+Revisión de un profesor sobre el código del backend:
+
+- No encontraba las rutas protegidas con `VerifyToken`: estaban aplicadas en `server.ts` (`router.use('/books', VerifyToken, RequireRole('admin'), bookRoutes)`) y no en los ficheros
+  de `routes/`. Por el mismo motivo parecía que `RequireRole` no se usaba. Ahora cada ruta lleva su cadena en su router, en el orden `VerifyToken` → `RequireRole('admin')` →
+  validación → controller, y `server.ts` solo monta los routers. Es lo que explicamos en el Seminari 5 (el router encadena las guardas) y lo que espera quien lee ruta a ruta.
+- La carpeta `types/` desaparece: las interfaces de los tokens y de `req.user` pasan a `models/User.ts`; las de los eventos del chat, a `models/Message.ts`; y la ampliación del
+  tipo `Request` de Express, a `middleware/VerifyToken.ts`, que es donde se rellena `req.user`.
+- `req.user` no se usaba en ningún controller. Se añade `GET /users/me`, que devuelve el usuario con sesión a partir de `req.user`.
+- `controllers/Users.ts` consultaba el modelo directamente. Se crea `services/UserService.ts` (con las interfaces `IUserSummary` e `IUserProfile` para lo que devuelve), y el
+  controller pasa a llamar al service, como en autores y libros.
+- El comportamiento de la API no cambia. Validación: `npm run build` y `npm run lint` sin errores; 35 pruebas con curl (las diez rutas de autores y libros dan 401 sin token y 403
+  como `user`; como `admin`, 200, y la validación se ejecuta después de la autenticación; `/users` y `/users/me` con y sin token, y `/users/me` devuelve el usuario de cada token)
+  y 6 pruebas del chat con `socket.io-client` (autenticación, `users:online`, mensajes y directo ajeno bloqueado).
