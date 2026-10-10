@@ -2,8 +2,8 @@ import jwt from 'jsonwebtoken';
 
 import { config } from '../config/config';
 import Logging from '../library/Logging';
-import type { AccessTokenPayload } from '../types/auth';
-import type { ChatSocket } from '../types/chat';
+import type { ChatSocket } from '../models/Message';
+import type { AccessTokenPayload } from '../models/User';
 
 // Middleware de socket.io: se ejecuta una vez, cuando un cliente intenta conectarse.
 // Es el equivalente a VerifyToken para el chat. El cliente envía el access token en el handshake:

@@ -1,10 +1,21 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config';
-import type { AccessTokenPayload } from '../types/auth';
+import type { AccessTokenPayload, AuthUser } from '../models/User';
+
+// Express no sabe que nosotros añadimos req.user en este middleware.
+// Aqui ampliamos su tipo Request para que TypeScript conozca ese campo en todos los
+// controladores. Es opcional (?) porque en las rutas publicas no hay usuario.
+declare global {
+    namespace Express {
+        interface Request {
+            user?: AuthUser;
+        }
+    }
+}
 
 // Middleware que comprueba que la peticion trae un access token valido.
-// Se pone delante de las rutas protegidas (ver server.ts).
+// Se pone delante de cada ruta protegida, en los ficheros de src/routes/.
 //
 // El token llega en la cabecera:   Authorization: Bearer eyJhbGciOi...
 //

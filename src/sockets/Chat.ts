@@ -5,7 +5,7 @@ import { config } from '../config/config';
 import Logging from '../library/Logging';
 import { VerifySocketToken } from '../middleware/SocketAuth';
 import Message from '../models/Message';
-import type { ChatJoinPayload, ChatMessage, ChatMessagePayload, ChatServer } from '../types/chat';
+import type { ChatJoinPayload, ChatMessage, ChatMessagePayload, ChatServer } from '../models/Message';
 
 // Cuántos mensajes antiguos se envían al entrar en una sala
 const HISTORY_LIMIT = 50;

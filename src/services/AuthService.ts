@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config';
-import User, { IUser, IUserModel } from '../models/User';
-import type { AccessTokenPayload, RefreshTokenPayload } from '../types/auth';
+import User, { AccessTokenPayload, IUser, IUserModel, RefreshTokenPayload } from '../models/User';
 import { verifyPassword } from '../utils/password';
 
 // Firma el access token: el que se envia en cada peticion en la cabecera Authorization.

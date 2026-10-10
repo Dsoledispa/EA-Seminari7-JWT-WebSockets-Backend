@@ -1,7 +1,9 @@
 import express from 'express';
 import controller from '../controllers/Users';
+import { VerifyToken } from '../middleware/VerifyToken';
 
 // Agrupa las rutas relacionadas con los usuarios.
+// Pide sesion (VerifyToken) pero no un rol concreto: sirve a cualquier usuario.
 const router = express.Router();
 
 /**
@@ -22,6 +24,7 @@ const router = express.Router();
  */
 
 // Devuelve el listado de usuarios disponibles.
-router.get('/', controller.listUsers);
+router.get('/', VerifyToken, controller.listUsers);
+
 
 export = router;
