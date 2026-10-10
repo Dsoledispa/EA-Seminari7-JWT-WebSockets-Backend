@@ -3,9 +3,15 @@ import express from 'express';
 import controller from '../controllers/Book';
 
 import { Schemas, ValidateId, ValidateJoi, ValidatePagination } from '../middleware/Joi';
+import { VerifyToken } from '../middleware/VerifyToken';
+import { RequireRole } from '../middleware/RequireRole';
 
 // Creamos el router que se encargara de las rutas relacionadas con los libros
 const router = express.Router();
+
+// Todas las rutas de este router son del backoffice: cada una pasa primero por
+// VerifyToken (401 si no hay un token valido) y despues por RequireRole('admin')
+// (403 si el usuario no es admin). Solo entonces se valida la peticion y llega al controller.
 
 /**
  * @openapi
@@ -35,7 +41,7 @@ const router = express.Router();
 // Ruta para crear un libro nuevo
 // Primero comprobamos que los datos recibidos cumplen el esquema de Joi
 // Si son correctos llamamos a la funcion createBook del controlador
-router.post('/', ValidateJoi(Schemas.book.create), controller.createBook);
+router.post('/', VerifyToken, RequireRole('admin'), ValidateJoi(Schemas.book.create), controller.createBook);
 
 /**
  * @openapi
@@ -59,7 +65,7 @@ router.post('/', ValidateJoi(Schemas.book.create), controller.createBook);
 
 // Ruta para buscar un libro usando su ID
 // Antes de llamar al controlador comprobamos que el ID tenga un formato valido
-router.get('/:bookId', ValidateId('bookId'), controller.readBook);
+router.get('/:bookId', VerifyToken, RequireRole('admin'), ValidateId('bookId'), controller.readBook);
 
 /**
  * @openapi
@@ -89,7 +95,7 @@ router.get('/:bookId', ValidateId('bookId'), controller.readBook);
  */
 
 // Ruta para obtener todos los libros
-router.get('/', ValidatePagination, controller.readAll);
+router.get('/', VerifyToken, RequireRole('admin'), ValidatePagination, controller.readAll);
 
 /**
  * @openapi
@@ -120,7 +126,7 @@ router.get('/', ValidatePagination, controller.readAll);
 
 // Ruta para actualizar un libro
 // Primero comprobamos que el ID sea correcto y despues validamos los datos recibidos
-router.put('/:bookId', ValidateId('bookId'), ValidateJoi(Schemas.book.update), controller.updateBook);
+router.put('/:bookId', VerifyToken, RequireRole('admin'), ValidateId('bookId'), ValidateJoi(Schemas.book.update), controller.updateBook);
 
 /**
  * @openapi
@@ -147,7 +153,7 @@ router.put('/:bookId', ValidateId('bookId'), ValidateJoi(Schemas.book.update), c
 
 // Ruta para eliminar un libro usando su ID
 // Comprobamos primero que el ID tenga un formato valido
-router.delete('/:bookId', ValidateId('bookId'), controller.deleteBook);
+router.delete('/:bookId', VerifyToken, RequireRole('admin'), ValidateId('bookId'), controller.deleteBook);
 
 // Exportamos el router para poder utilizar estas rutas en la aplicacion
 export = router;

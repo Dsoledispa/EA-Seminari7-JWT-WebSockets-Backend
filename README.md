@@ -214,7 +214,8 @@ src/
   routes/          El mapa de URLs: qué petición va a qué controller
     Auth.ts, Author.ts, Book.ts, Users.ts
   middleware/      Lo que se ejecuta entre la ruta y el controller
-    VerifyToken.ts   Comprueba el token de la cabecera Authorization y deja el usuario en req.user (401)
+    VerifyToken.ts   Comprueba el token de la cabecera Authorization y deja el usuario en req.user (401).
+                     Aquí se amplía también el tipo Request de Express con req.user
     RequireRole.ts   Deja pasar solo a un rol concreto (403)
     SocketAuth.ts    Comprueba el token al conectar un socket del chat
     Joi.ts           Guardas: validan el body (422) y el id de la URL (400)
@@ -224,12 +225,13 @@ src/
   controllers/     Leen la petición (req), llaman al service y eligen la respuesta (res)
     Auth.ts, Author.ts, Book.ts, Users.ts
   services/        Leen y escriben en la base de datos a través de los models. No saben que existe HTTP
-    AuthService.ts, AuthorService.ts, BookService.ts
-  models/          Esquemas de Mongoose: qué campos tiene cada documento y de qué tipo
-    User.ts, Author.ts, Book.ts, Message.ts
+    AuthService.ts, AuthorService.ts, BookService.ts, UserService.ts
+  models/          Esquemas de Mongoose y las interfaces de cada recurso
+    User.ts          Usuario, y las interfaces de los tokens (payload) y de req.user
+    Message.ts       Mensaje del chat, y las interfaces de los eventos de Socket.IO
+    Author.ts, Book.ts
   sockets/         El chat: socket.io y sus eventos
     Chat.ts          Salas, historial y envío de mensajes
-  types/           Tipos compartidos: el contenido de los tokens, req.user de Express y los eventos del chat
   utils/           Funciones pequeñas sin dependencias de Express
     password.ts      Cifra y comprueba contraseñas con scrypt
 ```
@@ -237,7 +239,7 @@ src/
 Una petición recorre las capas siempre en el mismo orden:
 
 ```
-cliente -> server.ts (logger, JSON, CORS, token y rol) -> routes/ -> middleware/ (validación) -> controllers/ -> services/ -> models/ -> MongoDB
+cliente -> server.ts (logger, JSON, CORS) -> routes/ -> middleware/ (token, rol y validación) -> controllers/ -> services/ -> models/ -> MongoDB
 ```
 
 Cada capa hace una sola cosa. Por eso los `services/` y los `models/` no importan Express:
@@ -270,13 +272,22 @@ El recorrido completo:
 401 y 403 no son lo mismo: 401 es "no sé quién eres" (no hay sesión válida) y 403 es "sé quién eres,
 pero no tienes permiso".
 
-Qué está protegido (en `server.ts`):
+Qué está protegido. Cada ruta lleva sus middlewares en su router (`src/routes/`), en este orden:
+primero `VerifyToken`, después `RequireRole` si hace falta un rol, después la validación y por último
+el controller. Por ejemplo:
+
+```ts
+router.delete('/:bookId', VerifyToken, RequireRole('admin'), ValidateId('bookId'), controller.deleteBook);
+```
+
+La autenticación va antes que la validación: a quien no tiene sesión se le responde 401, sin decirle
+si su petición estaba bien formada.
 
 | Rutas | Quién puede |
 |---|---|
 | `/auth/register`, `/auth/login`, `/auth/refresh` | Cualquiera (refresh necesita un refresh token válido) |
 | `/ping`, `/api-docs` | Cualquiera |
-| `/users` y el chat | Cualquier usuario con sesión |
+| `/users`, `/users/me` y el chat | Cualquier usuario con sesión |
 | `/authors`, `/books` (todas sus operaciones) | Solo `admin` |
 
 Decisiones y límites, porque es un proyecto de clase:
@@ -347,7 +358,7 @@ abierto, el chat sigue funcionando hasta que se cierra la conexión; al volver a
 token válido (el frontend lo renueva solo).
 
 Los tipos de los eventos (`ClientToServerEvents` y `ServerToClientEvents`) están en
-`src/types/chat.ts`: con ellos TypeScript avisa si se emite un evento que no existe o con datos
+`src/models/Message.ts`: con ellos TypeScript avisa si se emite un evento que no existe o con datos
 equivocados.
 
 ## Endpoints
@@ -363,6 +374,7 @@ estas rutas: va por WebSocket (ver [Chat](#chat-websockets)).
 | POST | `/auth/login` | Inicia sesión: devuelve `{ token, refreshToken, user }` | `{ "email": "...", "password": "..." }` |
 | POST | `/auth/refresh` | Devuelve un access token nuevo: `{ token }` | `{ "refreshToken": "..." }` |
 | GET | `/users` | Lista los usuarios (`_id` y `name`) para el chat directo. Cualquier usuario con sesión | |
+| GET | `/users/me` | Devuelve el usuario con sesión (`_id`, `name`, `email`, `role`). Lo saca de `req.user` | |
 | POST | `/authors` | Crea un autor | `{ "name": "...", "email": "..." }` |
 | GET | `/authors` | Lista los autores, paginados (`?page=&limit=&search=`) | |
 | GET | `/authors/:authorId` | Devuelve un autor | |
